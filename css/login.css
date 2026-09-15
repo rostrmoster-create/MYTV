@@ -1,0 +1,606 @@
+/* ========================================
+   MYTV Login Page Styles
+   Light, Elegant, Premium Design
+   ======================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Light Color Palette */
+    --color-background: #FAFBFC;
+    --color-white: #FFFFFF;
+    --color-primary: #667EEA;
+    --color-primary-dark: #5568D3;
+    --color-secondary: #764BA2;
+    --color-text-primary: #1F2937;
+    --color-text-secondary: #6B7280;
+    --color-text-light: #9CA3AF;
+    --color-border: #E5E7EB;
+    --color-border-light: #F3F4F6;
+    --color-error: #EF4444;
+    --color-success: #10B981;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
+    
+    /* Spacing */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    
+    /* Border Radius */
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    
+    /* Typography */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================================
+   Login Container
+   ======================================== */
+
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    position: relative;
+    overflow: hidden;
+}
+
+/* ========================================
+   Background Decorations
+   ======================================== */
+
+.bg-decoration {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.4;
+    filter: blur(80px);
+    pointer-events: none;
+    animation: float 20s ease-in-out infinite;
+}
+
+.decoration-1 {
+    width: 500px;
+    height: 500px;
+    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+    top: -250px;
+    right: -250px;
+    animation-delay: 0s;
+}
+
+.decoration-2 {
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, #F093FB 0%, #F5576C 100%);
+    bottom: -200px;
+    left: -200px;
+    animation-delay: 5s;
+}
+
+.decoration-3 {
+    width: 350px;
+    height: 350px;
+    background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation-delay: 10s;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(30px, -30px) scale(1.1);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+}
+
+/* ========================================
+   Login Content
+   ======================================== */
+
+.login-content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 460px;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   Brand Section
+   ======================================== */
+
+.brand-section {
+    text-align: center;
+    margin-bottom: var(--spacing-2xl);
+}
+
+.logo {
+    display: inline-block;
+    margin-bottom: var(--spacing-md);
+    animation: fadeIn 0.8s ease-out;
+}
+
+.logo svg {
+    display: block;
+    filter: drop-shadow(0 4px 6px rgba(102, 126, 234, 0.2));
+}
+
+.brand-name {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--spacing-sm);
+    letter-spacing: -0.02em;
+}
+
+.brand-tagline {
+    font-size: 1.125rem;
+    color: var(--color-text-secondary);
+    font-weight: 400;
+}
+
+/* ========================================
+   Login Card
+   ======================================== */
+
+.login-card {
+    background: var(--color-white);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-2xl);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--color-border-light);
+    backdrop-filter: blur(10px);
+}
+
+.card-header {
+    margin-bottom: var(--spacing-2xl);
+    text-align: center;
+}
+
+.card-header h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.card-header p {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    font-weight: 400;
+}
+
+/* ========================================
+   Form Styles
+   ======================================== */
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.form-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    font-size: 0.9375rem;
+    font-family: var(--font-family);
+    color: var(--color-text-primary);
+    background: var(--color-white);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.input-wrapper input::placeholder {
+    color: var(--color-text-light);
+}
+
+.input-wrapper input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.input-wrapper input:focus + .input-icon,
+.input-wrapper:focus-within .input-icon {
+    opacity: 1;
+}
+
+/* Password Toggle */
+.toggle-password {
+    position: absolute;
+    right: 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    border-radius: var(--radius-sm);
+}
+
+.toggle-password:hover {
+    background: var(--color-border-light);
+}
+
+.toggle-password:active {
+    transform: scale(0.95);
+}
+
+/* ========================================
+   Form Options
+   ======================================== */
+
+.form-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.checkbox-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.checkmark {
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-white);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.checkbox-label input[type="checkbox"]:checked ~ .checkmark {
+    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+    border-color: var(--color-primary);
+}
+
+.checkbox-label input[type="checkbox"]:checked ~ .checkmark::after {
+    content: '';
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    display: block;
+}
+
+.checkbox-text {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    font-weight: 400;
+}
+
+/* ========================================
+   Buttons
+   ======================================== */
+
+.btn-primary {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: var(--font-family);
+    color: var(--color-white);
+    background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #764BA2 0%, #667EEA 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.btn-primary:hover::before {
+    opacity: 1;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-text,
+.btn-icon {
+    position: relative;
+    z-index: 1;
+}
+
+.btn-icon {
+    transition: transform 0.3s ease;
+}
+
+.btn-primary:hover .btn-icon {
+    transform: translateX(4px);
+}
+
+/* Loading State */
+.btn-primary.loading {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn-primary.loading .btn-text {
+    opacity: 0;
+}
+
+.btn-primary.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   Error Message
+   ======================================== */
+
+.error-message {
+    padding: 0.875rem 1rem;
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    animation: shake 0.4s ease;
+}
+
+.error-message svg {
+    flex-shrink: 0;
+}
+
+.error-message span {
+    font-size: 0.875rem;
+    color: var(--color-error);
+    font-weight: 500;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+/* ========================================
+   Card Footer
+   ======================================== */
+
+.card-footer {
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-xl);
+    border-top: 1px solid var(--color-border-light);
+    text-align: center;
+}
+
+.card-footer p {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+}
+
+.card-footer a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.card-footer a:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+}
+
+/* ========================================
+   Bottom Info
+   ======================================== */
+
+.bottom-info {
+    margin-top: var(--spacing-2xl);
+    text-align: center;
+}
+
+.bottom-info p {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    font-weight: 400;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media (max-width: 640px) {
+    .login-container {
+        padding: var(--spacing-md);
+    }
+    
+    .login-card {
+        padding: var(--spacing-xl);
+    }
+    
+    .brand-name {
+        font-size: 2rem;
+    }
+    
+    .brand-tagline {
+        font-size: 1rem;
+    }
+    
+    .card-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .bg-decoration {
+        filter: blur(60px);
+    }
+    
+    .decoration-1 {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .decoration-2 {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .decoration-3 {
+        width: 200px;
+        height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-content {
+        max-width: 100%;
+    }
+    
+    .login-card {
+        padding: var(--spacing-lg);
+    }
+    
+    .brand-section {
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .card-header {
+        margin-bottom: var(--spacing-lg);
+    }
+}
+
+/* ========================================
+   Accessibility
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
