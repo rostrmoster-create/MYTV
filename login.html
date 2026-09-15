@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to MYTV - Your Entertainment, All in One Place</title>
+    <link rel="stylesheet" href="css/login.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <!-- Decorative Background Elements -->
+        <div class="bg-decoration decoration-1"></div>
+        <div class="bg-decoration decoration-2"></div>
+        <div class="bg-decoration decoration-3"></div>
+
+        <!-- Main Content -->
+        <div class="login-content">
+            <!-- Branding -->
+            <div class="brand-section">
+                <div class="logo">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="48" height="48" rx="12" fill="url(#gradient)"/>
+                        <path d="M14 18L18 32H20L24 20L28 32H30L34 18H32L29 28L25 16H23L19 28L16 18H14Z" fill="white"/>
+                        <defs>
+                            <linearGradient id="gradient" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#667EEA"/>
+                                <stop offset="1" stop-color="#764BA2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1 class="brand-name">MYTV</h1>
+                <p class="brand-tagline">Your entertainment, all in one place</p>
+            </div>
+
+            <!-- Login Form Card -->
+            <div class="login-card">
+                <div class="card-header">
+                    <h2>Welcome Back</h2>
+                    <p>Sign in to continue to your streaming experience</p>
+                </div>
+
+                <form id="loginForm" class="login-form">
+                    <!-- Profile Name -->
+                    <div class="form-group">
+                        <label for="profileName">Profile Name</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M10 10C12.7614 10 15 7.76142 15 5C15 2.23858 12.7614 0 10 0C7.23858 0 5 2.23858 5 5C5 7.76142 7.23858 10 10 10Z" fill="#9CA3AF"/>
+                                <path d="M10 12C4.477 12 0 14.686 0 18V20H20V18C20 14.686 15.523 12 10 12Z" fill="#9CA3AF"/>
+                            </svg>
+                            <input 
+                                type="text" 
+                                id="profileName" 
+                                placeholder="Enter your profile name"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Server URL -->
+                    <div class="form-group">
+                        <label for="serverUrl">Server URL</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M10 0C4.477 0 0 4.477 0 10C0 15.523 4.477 20 10 20C15.523 20 20 15.523 20 10C20 4.477 15.523 0 10 0ZM15.707 7.707L9.707 13.707C9.512 13.902 9.256 14 9 14C8.744 14 8.488 13.902 8.293 13.707L5.293 10.707C4.902 10.316 4.902 9.684 5.293 9.293C5.684 8.902 6.316 8.902 6.707 9.293L9 11.586L14.293 6.293C14.684 5.902 15.316 5.902 15.707 6.293C16.098 6.684 16.098 7.316 15.707 7.707Z" fill="#9CA3AF"/>
+                            </svg>
+                            <input 
+                                type="text" 
+                                id="serverUrl" 
+                                placeholder="http://example.com:8080"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Username -->
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M10 10C12.7614 10 15 7.76142 15 5C15 2.23858 12.7614 0 10 0C7.23858 0 5 2.23858 5 5C5 7.76142 7.23858 10 10 10Z" fill="#9CA3AF"/>
+                                <path d="M10 12C4.477 12 0 14.686 0 18V20H20V18C20 14.686 15.523 12 10 12Z" fill="#9CA3AF"/>
+                            </svg>
+                            <input 
+                                type="text" 
+                                id="username" 
+                                placeholder="Enter your username"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M15 8H14V5C14 2.243 11.757 0 9 0C6.243 0 4 2.243 4 5V8H3C1.897 8 1 8.897 1 10V18C1 19.103 1.897 20 3 20H15C16.103 20 17 19.103 17 18V10C17 8.897 16.103 8 15 8ZM6 5C6 3.346 7.346 2 9 2C10.654 2 12 3.346 12 5V8H6V5Z" fill="#9CA3AF"/>
+                            </svg>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                placeholder="Enter your password"
+                                required
+                            >
+                            <button type="button" class="toggle-password" id="togglePassword">
+                                <svg class="eye-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M10 4C4.5 4 1 10 1 10C1 10 4.5 16 10 16C15.5 16 19 10 19 10C19 10 15.5 4 10 4Z" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <circle cx="10" cy="10" r="3" stroke="#9CA3AF" stroke-width="1.5"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Remember Me -->
+                    <div class="form-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="rememberMe">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-text">Remember me</span>
+                        </label>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn-primary" id="loginBtn">
+                        <span class="btn-text">Sign In</span>
+                        <svg class="btn-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M4 10H16M16 10L11 5M16 10L11 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+
+                    <!-- Error Message -->
+                    <div class="error-message" id="errorMessage" style="display: none;">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 0C4.477 0 0 4.477 0 10C0 15.523 4.477 20 10 20C15.523 20 20 15.523 20 10C20 4.477 15.523 0 10 0ZM11 15H9V13H11V15ZM11 11H9V5H11V11Z" fill="#EF4444"/>
+                        </svg>
+                        <span id="errorText">Invalid credentials. Please try again.</span>
+                    </div>
+                </form>
+
+                <!-- Footer -->
+                <div class="card-footer">
+                    <p>New to MYTV? <a href="#" id="addUserLink">Create a profile</a></p>
+                </div>
+            </div>
+
+            <!-- Bottom Info -->
+            <div class="bottom-info">
+                <p>Experience premium streaming with thousands of channels, movies, and series</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>
