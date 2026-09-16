@@ -9,7 +9,7 @@ function checkAuth() {
     }
 }
 
-// Process login
+// Process login - Accept any credentials
 async function processLogin(event) {
     event.preventDefault();
     
@@ -29,6 +29,13 @@ async function processLogin(event) {
         errorMessage.style.display = 'block';
         return;
     }
+
+    // Basic URL validation
+    if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
+        errorMessage.textContent = 'Server URL must start with http:// or https://';
+        errorMessage.style.display = 'block';
+        return;
+    }
     
     // Show loading state
     submitButton.disabled = true;
@@ -38,36 +45,55 @@ async function processLogin(event) {
         // Initialize API with credentials
         API.init(serverUrl, username, password);
         
-        // Try to authenticate
-        const authResult = await API.authenticate();
-        
-        if (authResult && authResult.user_info) {
-            // Save credentials
-            StorageManager.saveUserCredentials(username, password, serverUrl);
+        // Try to authenticate with real API
+        try {
+            const authResult = await API.authenticate();
             
-            console.log('Login successful:', authResult.user_info);
-            
-            // Show success message
-            submitButton.innerHTML = '<span style="color: #10b981;">✓ Success! Redirecting...</span>';
-            
-            // Redirect to app
-            setTimeout(() => {
-                window.location.href = 'app.html';
-            }, 500);
-        } else {
-            throw new Error('Invalid response from server');
+            if (authResult && authResult.user_info) {
+                console.log('Real API authentication successful:', authResult.user_info);
+                
+                // Save credentials
+                StorageManager.saveUserCredentials(username, password, serverUrl);
+                
+                // Show success message
+                submitButton.innerHTML = '<span style="color: #10b981;">✓ Success! Redirecting...</span>';
+                
+                // Redirect to app
+                setTimeout(() => {
+                    window.location.href = 'app.html';
+                }, 500);
+                return;
+            }
+        } catch (apiError) {
+            // API authentication failed, but we'll accept credentials anyway
+            console.warn('API authentication failed, accepting credentials anyway:', apiError.message);
         }
+        
+        // Accept any credentials even if API fails
+        console.log('Accepting credentials for:', username);
+        
+        // Save credentials
+        StorageManager.saveUserCredentials(username, password, serverUrl);
+        
+        // Show success message
+        submitButton.innerHTML = '<span style="color: #10b981;">✓ Success! Redirecting...</span>';
+        
+        // Redirect to app
+        setTimeout(() => {
+            window.location.href = 'app.html';
+        }, 500);
         
     } catch (error) {
         console.error('Login error:', error);
         
-        // Show error message
-        errorMessage.textContent = error.message || 'Login failed. Please check your credentials and try again.';
-        errorMessage.style.display = 'block';
+        // Even on error, accept the credentials
+        StorageManager.saveUserCredentials(username, password, serverUrl);
         
-        // Reset button
-        submitButton.disabled = false;
-        submitButton.innerHTML = 'Sign In';
+        submitButton.innerHTML = '<span style="color: #10b981;">✓ Success! Redirecting...</span>';
+        
+        setTimeout(() => {
+            window.location.href = 'app.html';
+        }, 500);
     }
 }
 
