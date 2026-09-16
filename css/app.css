@@ -1,4 +1,4 @@
-/* MYTV Application Styles - v10 */
+/* MYTV Application Styles - v12 */
 
 * {
     margin: 0;
@@ -601,6 +601,7 @@ body {
     margin-bottom: 20px;
     font-weight: 500;
     animation: slideDown 0.3s ease;
+    transition: opacity 0.3s ease;
 }
 
 @keyframes slideDown {
