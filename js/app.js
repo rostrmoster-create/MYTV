@@ -1,4 +1,4 @@
-// Main Application Controller - v10
+// Main Application Controller - v12
 
 // Check authentication
 function checkAuth() {
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show home section by default
     showSection('home');
 
-    console.log('MYTV App initialized successfully - v10');
+    console.log('MYTV App initialized successfully - v12');
 });
 
 // Make functions globally available
