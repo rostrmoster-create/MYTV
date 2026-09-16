@@ -1,365 +1,325 @@
-// Movies Manager - v12
-class MovieManager {
-    constructor() {
-        this.allMovies = [];
-        this.filteredMovies = [];
-        this.genres = new Set();
+/* Movies & Series Styles - v12 */
+
+.movies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.movie-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.movie-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+}
+
+.movie-poster {
+    position: relative;
+    width: 100%;
+    padding-top: 150%;
+    overflow: hidden;
+    background: #f1f5f9;
+}
+
+.movie-poster img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.movie-card:hover .movie-poster img {
+    transform: scale(1.05);
+}
+
+.movie-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.movie-card:hover .movie-overlay {
+    opacity: 1;
+}
+
+.play-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.movie-card:hover .play-btn {
+    transform: translateY(0);
+}
+
+.play-btn:hover {
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+}
+
+.movie-info {
+    padding: 15px;
+}
+
+.movie-info h3 {
+    font-size: 16px;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.movie-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+/* Movie Detail Modal */
+.movie-detail {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 30px;
+}
+
+.movie-detail-poster img {
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.movie-detail-content h2 {
+    font-size: 32px;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.movie-detail-meta {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.movie-detail-meta span {
+    padding: 6px 12px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.rating {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%) !important;
+    color: #667eea !important;
+    font-weight: 600;
+}
+
+.genre-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    font-weight: 500;
+}
+
+.movie-description {
+    color: #475569;
+    line-height: 1.8;
+    margin-bottom: 25px;
+    font-size: 15px;
+}
+
+.movie-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.action-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.action-btn:not(.primary) {
+    background: #f1f5f9;
+    color: #475569;
+    border: 2px solid #e2e8f0;
+}
+
+.action-btn:not(.primary):hover {
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+}
+
+.action-btn.active {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+    color: #dc2626;
+    border-color: #fca5a5;
+}
+
+.action-btn.active:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
+}
+
+/* Series Episodes */
+.series-episodes {
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 2px solid #f1f5f9;
+}
+
+.series-episodes h3 {
+    font-size: 20px;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.episode-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.episode-item:hover {
+    background: #f1f5f9;
+    transform: translateX(5px);
+}
+
+.episode-number {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.episode-info {
+    flex: 1;
+}
+
+.episode-info h4 {
+    color: #2c3e50;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.episode-info span {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.episode-play-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.episode-play-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .movies-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
     }
-
-    async loadMovies() {
-        try {
-            const apiMovies = await APIClient.getVODStreams();
-            
-            if (apiMovies && apiMovies.length > 0) {
-                this.allMovies = apiMovies;
-            } else {
-                this.allMovies = this.getDemoMovies();
-            }
-        } catch (error) {
-            console.error('Error loading movies:', error);
-            this.allMovies = this.getDemoMovies();
-        }
-
-        this.extractGenres();
-        this.filteredMovies = [...this.allMovies];
-        this.renderMovies();
-        this.setupFilters();
+    
+    .movie-detail {
+        grid-template-columns: 1fr;
     }
-
-    getDemoMovies() {
-        return [
-            {
-                id: 'm1',
-                title: 'The Shawshank Redemption',
-                poster: 'https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg',
-                year: '1994',
-                genre: 'Drama',
-                rating: '9.3',
-                duration: '142 min',
-                description: 'Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm2',
-                title: 'The Godfather',
-                poster: 'https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg',
-                year: '1972',
-                genre: 'Crime',
-                rating: '9.2',
-                duration: '175 min',
-                description: 'The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm3',
-                title: 'The Dark Knight',
-                poster: 'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
-                year: '2008',
-                genre: 'Action',
-                rating: '9.0',
-                duration: '152 min',
-                description: 'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest tests.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm4',
-                title: 'Pulp Fiction',
-                poster: 'https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
-                year: '1994',
-                genre: 'Crime',
-                rating: '8.9',
-                duration: '154 min',
-                description: 'The lives of two mob hitmen, a boxer, a gangster and his wife intertwine in four tales of violence and redemption.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm5',
-                title: 'Forrest Gump',
-                poster: 'https://image.tmdb.org/t/p/w500/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg',
-                year: '1994',
-                genre: 'Drama',
-                rating: '8.8',
-                duration: '142 min',
-                description: 'The presidencies of Kennedy and Johnson unfold through the perspective of an Alabama man with an IQ of 75.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm6',
-                title: 'Inception',
-                poster: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
-                year: '2010',
-                genre: 'Sci-Fi',
-                rating: '8.8',
-                duration: '148 min',
-                description: 'A thief who steals corporate secrets through dream-sharing technology is given the inverse task of planting an idea.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm7',
-                title: 'The Matrix',
-                poster: 'https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg',
-                year: '1999',
-                genre: 'Sci-Fi',
-                rating: '8.7',
-                duration: '136 min',
-                description: 'A computer hacker learns from mysterious rebels about the true nature of his reality and his role in the war against its controllers.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm8',
-                title: 'Interstellar',
-                poster: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-                year: '2014',
-                genre: 'Sci-Fi',
-                rating: '8.6',
-                duration: '169 min',
-                description: 'A team of explorers travel through a wormhole in space in an attempt to ensure humanity\'s survival.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm9',
-                title: 'The Lion King',
-                poster: 'https://image.tmdb.org/t/p/w500/sKCr78MXSLixwmZ8DyJLrpMsd15.jpg',
-                year: '1994',
-                genre: 'Animation',
-                rating: '8.5',
-                duration: '88 min',
-                description: 'Lion prince Simba flees his kingdom only to learn the true meaning of responsibility and bravery.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm10',
-                title: 'Gladiator',
-                poster: 'https://image.tmdb.org/t/p/w500/ty8TGRuvJLPUmAR1H1nRIsgwvim.jpg',
-                year: '2000',
-                genre: 'Action',
-                rating: '8.5',
-                duration: '155 min',
-                description: 'A former Roman General sets out to exact vengeance against the corrupt emperor who murdered his family.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm11',
-                title: 'Titanic',
-                poster: 'https://image.tmdb.org/t/p/w500/9xjZS2rlVxm8SFx8kPC3aIGCOYQ.jpg',
-                year: '1997',
-                genre: 'Romance',
-                rating: '7.9',
-                duration: '194 min',
-                description: 'A seventeen-year-old aristocrat falls in love with a kind but poor artist aboard the luxurious, ill-fated R.M.S. Titanic.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm12',
-                title: 'Avengers: Endgame',
-                poster: 'https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg',
-                year: '2019',
-                genre: 'Action',
-                rating: '8.4',
-                duration: '181 min',
-                description: 'After the devastating events, the Avengers assemble once more to reverse Thanos\' actions and restore balance.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            }
-        ];
+    
+    .movie-detail-poster {
+        max-width: 300px;
+        margin: 0 auto;
     }
-
-    extractGenres() {
-        this.genres.clear();
-        this.allMovies.forEach(movie => {
-            if (movie.genre) {
-                this.genres.add(movie.genre);
-            }
-        });
-
-        const genreFilter = document.getElementById('genreFilter');
-        if (genreFilter) {
-            genreFilter.innerHTML = '<option value="all">All Genres</option>';
-            Array.from(this.genres).sort().forEach(genre => {
-                genreFilter.innerHTML += `<option value="${genre}">${genre}</option>`;
-            });
-        }
+    
+    .movie-detail-content h2 {
+        font-size: 24px;
     }
-
-    renderMovies() {
-        const container = document.getElementById('moviesContent');
-        if (!container) return;
-
-        if (this.filteredMovies.length === 0) {
-            container.innerHTML = '<div class="loading">No movies found</div>';
-            return;
-        }
-
-        const html = this.filteredMovies.map(movie => `
-            <div class="movie-card" onclick="window.movieManager.showMovieDetails(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
-                <div class="movie-poster">
-                    <img src="${movie.poster}" alt="${movie.title}" onerror="this.src='assets/placeholder.jpg'">
-                    <div class="movie-overlay">
-                        <button class="play-btn">▶ Play</button>
-                    </div>
-                </div>
-                <div class="movie-info">
-                    <h3>${movie.title}</h3>
-                    <div class="movie-meta">
-                        <span>⭐ ${movie.rating || 'N/A'}</span>
-                        <span>${movie.year || 'N/A'}</span>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        container.innerHTML = html;
+    
+    .movie-actions {
+        flex-direction: column;
     }
-
-    showMovieDetails(movie) {
-        // Add to recently watched when viewing details
-        if (typeof window.addToRecentlyWatched === 'function') {
-            window.addToRecentlyWatched({
-                type: 'movie',
-                id: movie.id,
-                title: movie.title,
-                poster: movie.poster,
-                year: movie.year,
-                genre: movie.genre,
-                rating: movie.rating
-            });
-        }
-
-        const isFavorite = this.isFavorite(movie.id);
-        
-        const modal = document.getElementById('detailModal');
-        const modalBody = document.getElementById('modalBody');
-        
-        modalBody.innerHTML = `
-            <div class="movie-detail">
-                <div class="movie-detail-poster">
-                    <img src="${movie.poster}" alt="${movie.title}" onerror="this.src='assets/placeholder.jpg'">
-                </div>
-                <div class="movie-detail-content">
-                    <h2>${movie.title}</h2>
-                    <div class="movie-detail-meta">
-                        <span class="rating">⭐ ${movie.rating || 'N/A'}</span>
-                        <span>${movie.year || 'N/A'}</span>
-                        <span>${movie.duration || 'N/A'}</span>
-                        <span class="genre-badge">${movie.genre || 'General'}</span>
-                    </div>
-                    <p class="movie-description">${movie.description || 'No description available.'}</p>
-                    <div class="movie-actions">
-                        <button class="action-btn primary" onclick="window.movieManager.playMovie(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
-                            ▶ Play Movie
-                        </button>
-                        <button class="action-btn ${isFavorite ? 'active' : ''}" onclick="window.movieManager.toggleFavorite(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
-                            ${isFavorite ? '❤️ Remove from Favorites' : '🤍 Add to Favorites'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        modal.style.display = 'block';
-    }
-
-    playMovie(movie) {
-        // Update recently watched (playing, not just viewing)
-        if (typeof window.addToRecentlyWatched === 'function') {
-            window.addToRecentlyWatched({
-                type: 'movie',
-                id: movie.id,
-                title: movie.title,
-                poster: movie.poster,
-                year: movie.year,
-                genre: movie.genre,
-                rating: movie.rating
-            });
-        }
-
-        closeModal();
-        
-        if (movie.stream_url && window.playerManager) {
-            showSection('livetv');
-            setTimeout(() => {
-                const channelInfo = document.getElementById('channelInfo');
-                const channelName = document.getElementById('currentChannelName');
-                const playerOverlay = document.getElementById('playerOverlay');
-
-                if (channelInfo && channelName) {
-                    channelName.textContent = movie.title;
-                    channelInfo.style.display = 'block';
-                }
-
-                if (playerOverlay) {
-                    playerOverlay.style.display = 'none';
-                }
-
-                window.playerManager.playStream(movie.stream_url);
-            }, 100);
-        } else {
-            alert('Stream not available for this movie.');
-        }
-    }
-
-    toggleFavorite(movie) {
-        const favorites = StorageManager.get('favorites') || [];
-        const index = favorites.findIndex(f => f.type === 'movie' && f.id === movie.id);
-        
-        if (index > -1) {
-            favorites.splice(index, 1);
-        } else {
-            favorites.push({
-                type: 'movie',
-                id: movie.id,
-                title: movie.title,
-                poster: movie.poster,
-                year: movie.year,
-                genre: movie.genre,
-                rating: movie.rating
-            });
-        }
-        
-        StorageManager.set('favorites', favorites);
-        this.showMovieDetails(movie);
-        
-        if (window.favoritesManager) {
-            window.favoritesManager.loadFavorites();
-        }
-    }
-
-    isFavorite(movieId) {
-        const favorites = StorageManager.get('favorites') || [];
-        return favorites.some(f => f.type === 'movie' && f.id === movieId);
-    }
-
-    setupFilters() {
-        const searchInput = document.getElementById('movieSearch');
-        const genreFilter = document.getElementById('genreFilter');
-
-        if (searchInput) {
-            searchInput.addEventListener('input', () => this.applyFilters());
-        }
-
-        if (genreFilter) {
-            genreFilter.addEventListener('change', () => this.applyFilters());
-        }
-    }
-
-    applyFilters() {
-        const searchQuery = document.getElementById('movieSearch')?.value.toLowerCase() || '';
-        const selectedGenre = document.getElementById('genreFilter')?.value || 'all';
-
-        this.filteredMovies = this.allMovies.filter(movie => {
-            const matchesSearch = movie.title.toLowerCase().includes(searchQuery) ||
-                                (movie.description && movie.description.toLowerCase().includes(searchQuery));
-            const matchesGenre = selectedGenre === 'all' || movie.genre === selectedGenre;
-            
-            return matchesSearch && matchesGenre;
-        });
-
-        this.renderMovies();
+    
+    .action-btn {
+        width: 100%;
     }
 }
 
-window.initMovieManager = function() {
-    if (!window.movieManager) {
-        window.movieManager = new MovieManager();
-        window.movieManager.loadMovies();
+@media (max-width: 480px) {
+    .movies-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
     }
-};
+    
+    .movie-info h3 {
+        font-size: 14px;
+    }
+    
+    .movie-meta {
+        font-size: 12px;
+        gap: 8px;
+    }
+}
