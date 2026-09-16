@@ -1,302 +1,184 @@
-// favorites.js - Enhanced Favorites Management
-
+// Favorites Manager - v12
 class FavoritesManager {
     constructor() {
-        this.favoriteChannels = [];
-        this.favoriteMovies = [];
-        this.favoriteSeries = [];
+        this.favorites = [];
         this.currentFilter = 'all';
-        this.init();
-    }
-
-    init() {
         this.loadFavorites();
-        this.renderFilterTabs();
-        this.renderFavorites();
-        this.setupEventListeners();
     }
 
     loadFavorites() {
-        // Get favorite IDs from storage
-        const channelIds = StorageManager.getFavorites('channels');
-        const movieIds = StorageManager.getFavorites('movies');
-        const seriesIds = StorageManager.getFavorites('series');
-
-        // Get actual data from managers
-        if (window.channelsManager && window.channelsManager.channels) {
-            this.favoriteChannels = window.channelsManager.channels.filter(ch => 
-                channelIds.includes(ch.id)
-            );
+        try {
+            const stored = StorageManager.get('favorites');
+            this.favorites = stored || [];
+        } catch (error) {
+            console.error('Error loading favorites:', error);
+            this.favorites = [];
         }
-
-        if (window.moviesManager && window.moviesManager.movies) {
-            this.favoriteMovies = window.moviesManager.movies.filter(m => 
-                movieIds.includes(m.id)
-            );
-        }
-
-        if (window.seriesManager && window.seriesManager.series) {
-            this.favoriteSeries = window.seriesManager.series.filter(s => 
-                seriesIds.includes(s.id)
-            );
-        }
-
-        console.log(`Loaded favorites: ${this.favoriteChannels.length} channels, ${this.favoriteMovies.length} movies, ${this.favoriteSeries.length} series`);
     }
 
     renderFilterTabs() {
-        const container = document.getElementById('favoritesFilter');
-        if (!container) return;
+        const channelCount = this.favorites.filter(f => f.type === 'channel').length;
+        const movieCount = this.favorites.filter(f => f.type === 'movie').length;
+        const seriesCount = this.favorites.filter(f => f.type === 'series').length;
 
-        const totalFavorites = this.favoriteChannels.length + this.favoriteMovies.length + this.favoriteSeries.length;
-
-        container.innerHTML = `
-            <button class="filter-tab ${this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">
-                All (${totalFavorites})
-            </button>
-            <button class="filter-tab ${this.currentFilter === 'channels' ? 'active' : ''}" data-filter="channels">
-                📺 Channels (${this.favoriteChannels.length})
-            </button>
-            <button class="filter-tab ${this.currentFilter === 'movies' ? 'active' : ''}" data-filter="movies">
-                🎬 Movies (${this.favoriteMovies.length})
-            </button>
-            <button class="filter-tab ${this.currentFilter === 'series' ? 'active' : ''}" data-filter="series">
-                🎭 Series (${this.favoriteSeries.length})
-            </button>
+        return `
+            <div class="filter-tab ${this.currentFilter === 'all' ? 'active' : ''}" 
+                 onclick="window.favoritesManager.filterFavorites('all')">
+                All (${this.favorites.length})
+            </div>
+            <div class="filter-tab ${this.currentFilter === 'channel' ? 'active' : ''}" 
+                 onclick="window.favoritesManager.filterFavorites('channel')">
+                Channels (${channelCount})
+            </div>
+            <div class="filter-tab ${this.currentFilter === 'movie' ? 'active' : ''}" 
+                 onclick="window.favoritesManager.filterFavorites('movie')">
+                Movies (${movieCount})
+            </div>
+            <div class="filter-tab ${this.currentFilter === 'series' ? 'active' : ''}" 
+                 onclick="window.favoritesManager.filterFavorites('series')">
+                Series (${seriesCount})
+            </div>
         `;
     }
 
+    filterFavorites(type) {
+        this.currentFilter = type;
+        this.renderFavorites();
+    }
+
     renderFavorites() {
-        const container = document.getElementById('favoritesContent');
-        if (!container) return;
+        const filterContainer = document.getElementById('favoritesFilter');
+        const contentContainer = document.getElementById('favoritesContent');
 
-        const totalFavorites = this.favoriteChannels.length + this.favoriteMovies.length + this.favoriteSeries.length;
+        if (!filterContainer || !contentContainer) return;
 
-        if (totalFavorites === 0) {
-            container.innerHTML = `
+        filterContainer.innerHTML = this.renderFilterTabs();
+
+        if (this.favorites.length === 0) {
+            contentContainer.innerHTML = `
                 <div class="empty-favorites">
                     <div class="empty-icon">⭐</div>
                     <h3>No Favorites Yet</h3>
-                    <p>Start adding your favorite channels, movies, and series!</p>
-                    <button class="explore-btn" onclick="app.showSection('channels')">
-                        Explore Content
-                    </button>
+                    <p>Start adding your favorite content to see them here</p>
+                    <button class="explore-btn" onclick="showSection('movies')">Explore Content</button>
                 </div>
             `;
             return;
         }
 
+        const filteredFavorites = this.currentFilter === 'all' 
+            ? this.favorites 
+            : this.favorites.filter(f => f.type === this.currentFilter);
+
+        if (filteredFavorites.length === 0) {
+            contentContainer.innerHTML = `
+                <div class="empty-favorites">
+                    <div class="empty-icon">⭐</div>
+                    <h3>No ${this.currentFilter}s in favorites</h3>
+                    <p>Add some ${this.currentFilter}s to your favorites</p>
+                </div>
+            `;
+            return;
+        }
+
+        const groupedFavorites = this.groupByType(filteredFavorites);
         let html = '';
 
-        // Show channels
-        if ((this.currentFilter === 'all' || this.currentFilter === 'channels') && this.favoriteChannels.length > 0) {
-            html += `
-                <div class="favorites-section">
-                    <h3 class="favorites-section-title">📺 Live TV Channels</h3>
-                    <div class="channels-grid">
-                        ${this.favoriteChannels.map(channel => `
-                            <div class="channel-card" data-channel-id="${channel.id}">
-                                <div class="channel-logo">
-                                    <img src="${channel.logo}" alt="${channel.name}" 
-                                         onerror="this.src='https://via.placeholder.com/120x120/667eea/ffffff?text=${encodeURIComponent(channel.name.substring(0, 2))}'">
-                                </div>
-                                <div class="channel-info">
-                                    <h3 class="channel-name">${channel.name}</h3>
-                                    <p class="channel-category">${channel.category}</p>
-                                </div>
-                                <button class="favorite-btn active" data-type="channel" data-id="${channel.id}">
-                                    <span class="favorite-icon">★</span>
-                                </button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
+        Object.keys(groupedFavorites).forEach(type => {
+            const items = groupedFavorites[type];
+            if (items.length === 0) return;
 
-        // Show movies
-        if ((this.currentFilter === 'all' || this.currentFilter === 'movies') && this.favoriteMovies.length > 0) {
+            const typeLabel = type.charAt(0).toUpperCase() + type.slice(1) + 's';
             html += `
                 <div class="favorites-section">
-                    <h3 class="favorites-section-title">🎬 Movies</h3>
+                    <h3 class="favorites-section-title">${typeLabel}</h3>
                     <div class="movies-grid">
-                        ${this.favoriteMovies.map(movie => `
-                            <div class="movie-card" data-movie-id="${movie.id}">
-                                <div class="movie-poster">
-                                    <img src="${movie.cover}" alt="${movie.title}"
-                                         onerror="this.src='https://via.placeholder.com/300x450/667eea/ffffff?text=${encodeURIComponent(movie.title.substring(0, 2))}'">
-                                    <div class="movie-overlay">
-                                        <button class="play-btn">
-                                            <span class="play-icon">▶</span>
-                                            <span>Play Now</span>
-                                        </button>
-                                        <button class="info-btn">
-                                            <span>ℹ</span>
-                                            <span>More Info</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="movie-info">
-                                    <h3 class="movie-title">${movie.title}</h3>
-                                    <div class="movie-meta">
-                                        <span class="movie-year">${movie.year}</span>
-                                        ${movie.rating !== 'N/A' ? `<span class="movie-rating">⭐ ${movie.rating}</span>` : ''}
-                                    </div>
-                                </div>
-                                <button class="favorite-btn active" data-type="movie" data-id="${movie.id}">
-                                    <span class="favorite-icon">★</span>
-                                </button>
-                            </div>
-                        `).join('')}
+                        ${items.map(item => this.renderFavoriteCard(item)).join('')}
                     </div>
                 </div>
             `;
-        }
-
-        // Show series
-        if ((this.currentFilter === 'all' || this.currentFilter === 'series') && this.favoriteSeries.length > 0) {
-            html += `
-                <div class="favorites-section">
-                    <h3 class="favorites-section-title">🎭 TV Series</h3>
-                    <div class="movies-grid">
-                        ${this.favoriteSeries.map(show => `
-                            <div class="movie-card" data-series-id="${show.id}">
-                                <div class="movie-poster">
-                                    <img src="${show.cover}" alt="${show.title}"
-                                         onerror="this.src='https://via.placeholder.com/300x450/667eea/ffffff?text=${encodeURIComponent(show.title.substring(0, 2))}'">
-                                    <div class="movie-overlay">
-                                        <button class="series-info-btn">
-                                            <span>ℹ</span>
-                                            <span>View Episodes</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="movie-info">
-                                    <h3 class="movie-title">${show.title}</h3>
-                                    <div class="movie-meta">
-                                        <span class="movie-year">${show.year}</span>
-                                        ${show.rating !== 'N/A' ? `<span class="movie-rating">⭐ ${show.rating}</span>` : ''}
-                                    </div>
-                                </div>
-                                <button class="favorite-btn active" data-type="series" data-id="${show.id}">
-                                    <span class="favorite-icon">★</span>
-                                </button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        container.innerHTML = html;
-    }
-
-    setupEventListeners() {
-        // Filter tabs
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('filter-tab')) {
-                document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
-                e.target.classList.add('active');
-                this.currentFilter = e.target.dataset.filter;
-                this.renderFavorites();
-            }
-
-            // Channel clicks
-            if (e.target.closest('.channel-card') && !e.target.closest('.favorite-btn')) {
-                const card = e.target.closest('.channel-card');
-                const channelId = parseInt(card.dataset.channelId);
-                this.playChannel(channelId);
-            }
-
-            // Movie play button
-            if (e.target.closest('.play-btn')) {
-                const card = e.target.closest('.movie-card');
-                const movieId = parseInt(card.dataset.movieId);
-                this.playMovie(movieId);
-            }
-
-            // Movie info button
-            if (e.target.closest('.info-btn')) {
-                const card = e.target.closest('.movie-card');
-                const movieId = parseInt(card.dataset.movieId);
-                this.showMovieDetails(movieId);
-            }
-
-            // Series info button
-            if (e.target.closest('.series-info-btn')) {
-                const card = e.target.closest('.movie-card');
-                const seriesId = parseInt(card.dataset.seriesId);
-                this.showSeriesDetails(seriesId);
-            }
-
-            // Favorite buttons
-            if (e.target.closest('.favorite-btn')) {
-                e.stopPropagation();
-                const btn = e.target.closest('.favorite-btn');
-                const type = btn.dataset.type;
-                const id = parseInt(btn.dataset.id);
-                this.removeFavorite(type, id);
-            }
         });
+
+        contentContainer.innerHTML = html;
     }
 
-    playChannel(channelId) {
-        if (window.channelsManager) {
-            window.app.showSection('channels');
-            setTimeout(() => {
-                window.channelsManager.playChannel(channelId);
-            }, 100);
+    groupByType(favorites) {
+        return {
+            channel: favorites.filter(f => f.type === 'channel'),
+            movie: favorites.filter(f => f.type === 'movie'),
+            series: favorites.filter(f => f.type === 'series')
+        };
+    }
+
+    renderFavoriteCard(item) {
+        const image = item.logo || item.poster || 'assets/placeholder.jpg';
+        const title = item.name || item.title;
+        const meta = this.getItemMeta(item);
+
+        return `
+            <div class="movie-card" onclick="window.favoritesManager.openItem(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                <div class="movie-poster">
+                    <img src="${image}" alt="${title}" onerror="this.src='assets/placeholder.jpg'">
+                    <div class="movie-overlay">
+                        <button class="play-btn">▶ ${item.type === 'channel' ? 'Watch' : 'View'}</button>
+                    </div>
+                </div>
+                <div class="movie-info">
+                    <h3>${title}</h3>
+                    <div class="movie-meta">
+                        ${meta}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    getItemMeta(item) {
+        switch(item.type) {
+            case 'channel':
+                return `<span>${item.category || 'Live TV'}</span>`;
+            case 'movie':
+                return `<span>⭐ ${item.rating || 'N/A'}</span><span>${item.year || ''}</span>`;
+            case 'series':
+                return `<span>⭐ ${item.rating || 'N/A'}</span><span>${item.seasons} Season${item.seasons !== 1 ? 's' : ''}</span>`;
+            default:
+                return '';
         }
     }
 
-    playMovie(movieId) {
-        if (window.moviesManager) {
-            window.moviesManager.playMovie(movieId);
+    openItem(item) {
+        switch(item.type) {
+            case 'channel':
+                showSection('livetv');
+                setTimeout(() => {
+                    if (window.channelManager) {
+                        window.channelManager.playChannel(item);
+                    }
+                }, 100);
+                break;
+            case 'movie':
+                showSection('movies');
+                setTimeout(() => {
+                    if (window.movieManager) {
+                        window.movieManager.showMovieDetails(item);
+                    }
+                }, 100);
+                break;
+            case 'series':
+                showSection('series');
+                setTimeout(() => {
+                    if (window.seriesManager) {
+                        window.seriesManager.showSeriesDetails(item);
+                    }
+                }, 100);
+                break;
         }
-    }
-
-    showMovieDetails(movieId) {
-        if (window.moviesManager) {
-            window.moviesManager.showMovieDetails(movieId);
-        }
-    }
-
-    showSeriesDetails(seriesId) {
-        if (window.seriesManager) {
-            window.seriesManager.showSeriesDetails(seriesId);
-        }
-    }
-
-    removeFavorite(type, id) {
-        if (confirm('Remove from favorites?')) {
-            // Remove from respective manager
-            if (type === 'channel' && window.channelsManager) {
-                window.channelsManager.toggleFavorite(id);
-            } else if (type === 'movie' && window.moviesManager) {
-                window.moviesManager.toggleFavorite(id);
-            } else if (type === 'series' && window.seriesManager) {
-                window.seriesManager.toggleFavorite(id);
-            }
-
-            // Reload favorites
-            this.loadFavorites();
-            this.renderFilterTabs();
-            this.renderFavorites();
-        }
-    }
-
-    refresh() {
-        this.loadFavorites();
-        this.renderFilterTabs();
-        this.renderFavorites();
     }
 }
 
-// Initialize when favorites section is shown
 window.initFavoritesManager = function() {
     if (!window.favoritesManager) {
         window.favoritesManager = new FavoritesManager();
-    } else {
-        window.favoritesManager.refresh();
     }
+    window.favoritesManager.renderFavorites();
 };
