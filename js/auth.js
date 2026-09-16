@@ -1,4 +1,4 @@
-// auth.js - Authentication Management
+// auth.js - Authentication Management v4
 
 // Check if user is already logged in
 function checkAuth() {
@@ -39,6 +39,7 @@ async function processLogin(event) {
     
     // Show loading state
     submitButton.disabled = true;
+    submitButton.classList.add('loading');
     submitButton.innerHTML = '<span style="opacity: 0.7;">Signing in...</span>';
     
     try {
@@ -56,7 +57,9 @@ async function processLogin(event) {
                 StorageManager.saveUserCredentials(username, password, serverUrl);
                 
                 // Show success message
-                submitButton.innerHTML = '<span style="color: #10b981;">✓ Success! Redirecting...</span>';
+                submitButton.classList.remove('loading');
+                submitButton.classList.add('success');
+                submitButton.innerHTML = '<span>✓ Success! Redirecting...</span>';
                 
                 // Redirect to app
                 setTimeout(() => {
@@ -76,7 +79,9 @@ async function processLogin(event) {
         StorageManager.saveUserCredentials(username, password, serverUrl);
         
         // Show success message
-        submitButton.innerHTML = '<span style="color: #10b981;">✓ Success! Redirecting...</span>';
+        submitButton.classList.remove('loading');
+        submitButton.classList.add('success');
+        submitButton.innerHTML = '<span>✓ Success! Redirecting...</span>';
         
         // Redirect to app
         setTimeout(() => {
@@ -89,7 +94,9 @@ async function processLogin(event) {
         // Even on error, accept the credentials
         StorageManager.saveUserCredentials(username, password, serverUrl);
         
-        submitButton.innerHTML = '<span style="color: #10b981;">✓ Success! Redirecting...</span>';
+        submitButton.classList.remove('loading');
+        submitButton.classList.add('success');
+        submitButton.innerHTML = '<span>✓ Success! Redirecting...</span>';
         
         setTimeout(() => {
             window.location.href = 'app.html';
