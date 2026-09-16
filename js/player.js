@@ -1,201 +1,107 @@
-/**
- * MYTV Video Player Module
- * Handles HLS video playback
- */
+/* player.css - Video Player Styles - Light Premium Theme */
 
-class Player {
-    constructor() {
-        this.videoElement = null;
-        this.hls = null;
-        this.currentChannel = null;
-        this.isPlaying = false;
-        
-        this.init();
+.player-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #ffffff;
+    color: #667eea;
+    border: 2px solid #667eea;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 24px;
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    transform: translateX(-4px);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.back-btn span:first-child {
+    font-size: 20px;
+}
+
+.video-wrapper {
+    background: #000000;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+}
+
+.video-player {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000000;
+    display: block;
+}
+
+.player-info {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    padding: 24px 32px;
+    color: #ffffff;
+}
+
+#playerTitle {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #ffffff;
+}
+
+#playerCategory {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+/* Responsive Player */
+@media (max-width: 768px) {
+    .player-container {
+        padding: 0;
     }
 
-    /**
-     * Initialize player
-     */
-    init() {
-        // HLS.js will be loaded from CDN in the HTML
-        console.log('Player initialized');
+    .back-btn {
+        margin: 0 16px 20px;
     }
 
-    /**
-     * Load and play channel
-     */
-    playChannel(channel) {
-        if (!channel || !channel.stream_url) {
-            this.showError('Invalid channel or stream URL');
-            return;
-        }
-
-        this.currentChannel = channel;
-        this.showLoading();
-
-        // Get video element
-        this.videoElement = document.getElementById('playerVideo');
-        
-        if (!this.videoElement) {
-            console.error('Video element not found');
-            return;
-        }
-
-        // Check if HLS is supported
-        if (Hls.isSupported()) {
-            this.playHLS(channel.stream_url);
-        } else if (this.videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-            // Native HLS support (Safari)
-            this.playNative(channel.stream_url);
-        } else {
-            this.showError('HLS playback is not supported in your browser');
-        }
+    .video-wrapper {
+        border-radius: 16px;
     }
 
-    /**
-     * Play using HLS.js
-     */
-    playHLS(url) {
-        // Destroy existing instance
-        if (this.hls) {
-            this.hls.destroy();
-        }
-
-        // Create new HLS instance
-        this.hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: true,
-            backBufferLength: 90
-        });
-
-        // Bind to video element
-        this.hls.loadSource(url);
-        this.hls.attachMedia(this.videoElement);
-
-        // Handle events
-        this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            this.hideLoading();
-            this.videoElement.play().catch(e => {
-                console.error('Autoplay failed:', e);
-                this.showError('Please click play to start the stream');
-            });
-        });
-
-        this.hls.on(Hls.Events.ERROR, (event, data) => {
-            console.error('HLS Error:', data);
-            
-            if (data.fatal) {
-                switch(data.type) {
-                    case Hls.ErrorTypes.NETWORK_ERROR:
-                        this.showError('Network error. Please check your connection.');
-                        // Try to recover
-                        this.hls.startLoad();
-                        break;
-                    case Hls.ErrorTypes.MEDIA_ERROR:
-                        this.showError('Media error. Attempting to recover...');
-                        this.hls.recoverMediaError();
-                        break;
-                    default:
-                        this.showError('Cannot play this stream');
-                        this.hls.destroy();
-                        break;
-                }
-            }
-        });
+    .player-info {
+        padding: 20px 24px;
     }
 
-    /**
-     * Play using native HLS (Safari)
-     */
-    playNative(url) {
-        this.videoElement.src = url;
-        
-        this.videoElement.addEventListener('loadedmetadata', () => {
-            this.hideLoading();
-            this.videoElement.play().catch(e => {
-                console.error('Autoplay failed:', e);
-                this.showError('Please click play to start the stream');
-            });
-        });
-
-        this.videoElement.addEventListener('error', () => {
-            this.showError('Cannot play this stream');
-        });
+    #playerTitle {
+        font-size: 20px;
     }
 
-    /**
-     * Stop playback
-     */
-    stop() {
-        if (this.hls) {
-            this.hls.destroy();
-            this.hls = null;
-        }
-
-        if (this.videoElement) {
-            this.videoElement.pause();
-            this.videoElement.src = '';
-        }
-
-        this.currentChannel = null;
-        this.isPlaying = false;
-    }
-
-    /**
-     * Show loading state
-     */
-    showLoading() {
-        const loadingEl = document.getElementById('playerLoading');
-        const errorEl = document.getElementById('playerError');
-        const placeholderEl = document.getElementById('playerPlaceholder');
-
-        if (loadingEl) loadingEl.style.display = 'flex';
-        if (errorEl) errorEl.style.display = 'none';
-        if (placeholderEl) placeholderEl.style.display = 'none';
-    }
-
-    /**
-     * Hide loading state
-     */
-    hideLoading() {
-        const loadingEl = document.getElementById('playerLoading');
-        const placeholderEl = document.getElementById('playerPlaceholder');
-
-        if (loadingEl) loadingEl.style.display = 'none';
-        if (placeholderEl) placeholderEl.style.display = 'none';
-    }
-
-    /**
-     * Show error state
-     */
-    showError(message) {
-        const loadingEl = document.getElementById('playerLoading');
-        const errorEl = document.getElementById('playerError');
-        const errorText = document.getElementById('playerErrorText');
-        const placeholderEl = document.getElementById('playerPlaceholder');
-
-        if (loadingEl) loadingEl.style.display = 'none';
-        if (placeholderEl) placeholderEl.style.display = 'none';
-        if (errorEl) errorEl.style.display = 'flex';
-        if (errorText) errorText.textContent = message;
-    }
-
-    /**
-     * Retry playback
-     */
-    retry() {
-        if (this.currentChannel) {
-            this.playChannel(this.currentChannel);
-        }
-    }
-
-    /**
-     * Get current channel
-     */
-    getCurrentChannel() {
-        return this.currentChannel;
+    #playerCategory {
+        font-size: 14px;
     }
 }
 
-// Export for use in other modules
-window.Player = Player;
+@media (max-width: 480px) {
+    .video-wrapper {
+        border-radius: 0;
+    }
+
+    .player-info {
+        padding: 16px 20px;
+    }
+
+    #playerTitle {
+        font-size: 18px;
+    }
+}
