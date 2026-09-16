@@ -1,312 +1,367 @@
-// movies.js - Movies/VOD Management with Real API
+/* movies.css - Movies Section Styles - Light Premium Theme */
 
-class MoviesManager {
-    constructor() {
-        this.movies = [];
-        this.categories = [];
-        this.currentCategory = 'all';
-        this.favorites = new Set(StorageManager.getFavorites('movies'));
-        this.searchTerm = '';
-        this.init();
+/* Movies Grid */
+.movies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 28px;
+}
+
+.movie-card {
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    position: relative;
+    border: 2px solid transparent;
+}
+
+.movie-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 40px rgba(102, 126, 234, 0.2);
+    border-color: #667eea;
+}
+
+/* Movie Poster */
+.movie-poster {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2/3;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%);
+}
+
+.movie-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.movie-card:hover .movie-poster img {
+    transform: scale(1.05);
+}
+
+/* Movie Overlay */
+.movie-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 20px;
+    gap: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.movie-card:hover .movie-overlay {
+    opacity: 1;
+}
+
+/* Play Button */
+.play-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+.play-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.play-icon {
+    font-size: 16px;
+}
+
+/* Info Button */
+.info-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.info-btn:hover {
+    background: #ffffff;
+    transform: scale(1.05);
+}
+
+/* Movie Info */
+.movie-info {
+    padding: 16px;
+}
+
+.movie-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.4;
+}
+
+.movie-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 13px;
+}
+
+.movie-year {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.movie-rating {
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+/* Movie Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: #ffffff;
+    border-radius: 24px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
     }
-
-    async init() {
-        await this.loadMovies();
-        this.renderCategories();
-        this.renderMovies();
-        this.setupEventListeners();
-    }
-
-    async loadMovies() {
-        try {
-            // Show loading state
-            const moviesGrid = document.getElementById('moviesGrid');
-            if (moviesGrid) {
-                moviesGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #64748b;"><div style="font-size: 18px; margin-bottom: 10px;">Loading movies...</div><div style="font-size: 14px;">Please wait while we fetch your content</div></div>';
-            }
-
-            // Get categories first
-            const categoriesData = await API.getVODCategories();
-            console.log('Movie categories loaded:', categoriesData);
-
-            // Get all VOD streams
-            const streamsData = await API.getVODStreams();
-            console.log('Movies loaded:', streamsData);
-
-            if (!streamsData || streamsData.length === 0) {
-                throw new Error('No movies available');
-            }
-
-            // Transform API data to our format
-            this.movies = streamsData.map(stream => ({
-                id: stream.stream_id,
-                title: stream.name,
-                cover: stream.stream_icon || stream.cover_big || 'https://via.placeholder.com/300x450/e0e7ff/4f46e5?text=' + encodeURIComponent(stream.name.substring(0, 2)),
-                genre: this.getCategoryName(stream.category_id, categoriesData),
-                categoryId: stream.category_id,
-                year: stream.releasedate ? new Date(stream.releasedate).getFullYear() : 'N/A',
-                rating: stream.rating ? parseFloat(stream.rating).toFixed(1) : 'N/A',
-                description: stream.plot || 'No description available',
-                duration: stream.duration || 'N/A',
-                streamUrl: API.buildVODStreamUrl(stream.stream_id, stream.container_extension || 'mp4'),
-                container_extension: stream.container_extension
-            }));
-
-            // Build categories list
-            this.buildCategories(categoriesData);
-
-            console.log(`Loaded ${this.movies.length} movies in ${this.categories.length} categories`);
-
-        } catch (error) {
-            console.error('Error loading movies:', error);
-            
-            // Show error message
-            const moviesGrid = document.getElementById('moviesGrid');
-            if (moviesGrid) {
-                moviesGrid.innerHTML = `
-                    <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px;">
-                        <div style="color: #ef4444; font-size: 18px; margin-bottom: 10px;">⚠️ Failed to load movies</div>
-                        <div style="color: #64748b; font-size: 14px; margin-bottom: 20px;">${error.message}</div>
-                        <button onclick="location.reload()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">Retry</button>
-                    </div>
-                `;
-            }
-        }
-    }
-
-    getCategoryName(categoryId, categories) {
-        if (!categories || categories.length === 0) return 'Other';
-        const category = categories.find(cat => cat.category_id === categoryId);
-        return category ? category.category_name : 'Other';
-    }
-
-    buildCategories(categoriesData) {
-        // Create categories from the API data
-        const categorySet = new Set();
-        
-        if (categoriesData && categoriesData.length > 0) {
-            categoriesData.forEach(cat => {
-                categorySet.add(cat.category_name);
-            });
-        }
-
-        // Add categories from movies as fallback
-        this.movies.forEach(movie => {
-            if (movie.genre) {
-                categorySet.add(movie.genre);
-            }
-        });
-
-        this.categories = ['All Movies', ...Array.from(categorySet).sort()];
-    }
-
-    renderCategories() {
-        const container = document.getElementById('movieGenres');
-        if (!container) return;
-
-        container.innerHTML = this.categories.map(category => `
-            <button class="genre-btn ${this.currentCategory === category.toLowerCase().replace(/ /g, '-') || (category === 'All Movies' && this.currentCategory === 'all') ? 'active' : ''}" 
-                    data-genre="${category === 'All Movies' ? 'all' : category.toLowerCase().replace(/ /g, '-')}">
-                ${category}
-            </button>
-        `).join('');
-    }
-
-    renderMovies() {
-        const container = document.getElementById('moviesGrid');
-        if (!container) return;
-
-        const filteredMovies = this.getFilteredMovies();
-
-        if (filteredMovies.length === 0) {
-            container.innerHTML = `
-                <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #64748b;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">🎬</div>
-                    <div style="font-size: 18px; margin-bottom: 8px;">No movies found</div>
-                    <div style="font-size: 14px;">Try a different category or search term</div>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = filteredMovies.map(movie => `
-            <div class="movie-card" data-movie-id="${movie.id}">
-                <div class="movie-poster">
-                    <img src="${movie.cover}" alt="${movie.title}"
-                         onerror="this.src='https://via.placeholder.com/300x450/e0e7ff/4f46e5?text=${encodeURIComponent(movie.title.substring(0, 2))}'">
-                    <div class="movie-overlay">
-                        <button class="play-btn">
-                            <span class="play-icon">▶</span>
-                            <span>Play Now</span>
-                        </button>
-                        <button class="info-btn">
-                            <span>ℹ</span>
-                            <span>More Info</span>
-                        </button>
-                    </div>
-                </div>
-                <div class="movie-info">
-                    <h3 class="movie-title">${movie.title}</h3>
-                    <div class="movie-meta">
-                        <span class="movie-year">${movie.year}</span>
-                        ${movie.rating !== 'N/A' ? `<span class="movie-rating">⭐ ${movie.rating}</span>` : ''}
-                    </div>
-                </div>
-                <button class="favorite-btn ${this.favorites.has(movie.id) ? 'active' : ''}" 
-                        data-movie-id="${movie.id}"
-                        title="${this.favorites.has(movie.id) ? 'Remove from favorites' : 'Add to favorites'}">
-                    <span class="favorite-icon">${this.favorites.has(movie.id) ? '★' : '☆'}</span>
-                </button>
-            </div>
-        `).join('');
-    }
-
-    getFilteredMovies() {
-        return this.movies.filter(movie => {
-            const matchesCategory = this.currentCategory === 'all' || 
-                                   movie.genre.toLowerCase().replace(/ /g, '-') === this.currentCategory;
-            const matchesSearch = !this.searchTerm || 
-                                 movie.title.toLowerCase().includes(this.searchTerm.toLowerCase());
-            return matchesCategory && matchesSearch;
-        });
-    }
-
-    setupEventListeners() {
-        // Genre buttons
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('genre-btn')) {
-                document.querySelectorAll('.genre-btn').forEach(btn => btn.classList.remove('active'));
-                e.target.classList.add('active');
-                this.currentCategory = e.target.dataset.genre;
-                this.renderMovies();
-            }
-
-            // Play button
-            if (e.target.closest('.play-btn')) {
-                const card = e.target.closest('.movie-card');
-                const movieId = parseInt(card.dataset.movieId);
-                this.playMovie(movieId);
-            }
-
-            // Info button
-            if (e.target.closest('.info-btn')) {
-                const card = e.target.closest('.movie-card');
-                const movieId = parseInt(card.dataset.movieId);
-                this.showMovieDetails(movieId);
-            }
-
-            // Favorite buttons
-            if (e.target.closest('.favorite-btn')) {
-                e.stopPropagation();
-                const btn = e.target.closest('.favorite-btn');
-                const movieId = parseInt(btn.dataset.movieId);
-                this.toggleFavorite(movieId);
-            }
-
-            // Close modal
-            if (e.target.classList.contains('modal') || e.target.classList.contains('close-modal')) {
-                this.closeModal();
-            }
-        });
-
-        // Search
-        const searchInput = document.getElementById('movieSearch');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.searchTerm = e.target.value;
-                this.renderMovies();
-            });
-        }
-    }
-
-    playMovie(movieId) {
-        const movie = this.movies.find(m => m.id === movieId);
-        if (!movie) return;
-
-        // Add to recently watched
-        StorageManager.addToRecentlyWatched('movie', {
-            id: movie.id,
-            title: movie.title,
-            cover: movie.cover,
-            genre: movie.genre,
-            year: movie.year,
-            rating: movie.rating
-        });
-
-        // Close modal if open
-        this.closeModal();
-
-        // Show player section
-        const playerSection = document.getElementById('playerSection');
-        const moviesSection = document.getElementById('moviesSection');
-        
-        if (playerSection && moviesSection) {
-            playerSection.style.display = 'block';
-            moviesSection.style.display = 'none';
-        }
-
-        // Initialize or update player
-        if (window.videoPlayer) {
-            window.videoPlayer.loadMovie(movie);
-        } else {
-            window.videoPlayer = new VideoPlayer();
-            window.videoPlayer.loadMovie(movie);
-        }
-    }
-
-    showMovieDetails(movieId) {
-        const movie = this.movies.find(m => m.id === movieId);
-        if (!movie) return;
-
-        const modal = document.getElementById('movieModal');
-        if (!modal) return;
-
-        document.getElementById('modalPoster').src = movie.cover;
-        document.getElementById('modalTitle').textContent = movie.title;
-        document.getElementById('modalYear').textContent = movie.year;
-        document.getElementById('modalRating').textContent = movie.rating !== 'N/A' ? `⭐ ${movie.rating}` : '';
-        document.getElementById('modalGenre').textContent = movie.genre;
-        document.getElementById('modalDuration').textContent = movie.duration;
-        document.getElementById('modalDescription').textContent = movie.description;
-
-        const playButton = document.getElementById('modalPlayButton');
-        playButton.onclick = () => this.playMovie(movieId);
-
-        modal.classList.add('active');
-    }
-
-    closeModal() {
-        const modal = document.getElementById('movieModal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
-    }
-
-    toggleFavorite(movieId) {
-        if (this.favorites.has(movieId)) {
-            this.favorites.delete(movieId);
-        } else {
-            this.favorites.add(movieId);
-        }
-
-        StorageManager.saveFavorites('movies', Array.from(this.favorites));
-        this.renderMovies();
-    }
-
-    getMovie(movieId) {
-        return this.movies.find(m => m.id === movieId);
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
-// Initialize when page loads
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        if (document.getElementById('moviesGrid')) {
-            window.moviesManager = new MoviesManager();
-        }
-    });
-} else {
-    if (document.getElementById('moviesGrid')) {
-        window.moviesManager = new MoviesManager();
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.5);
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.3s ease;
+}
+
+.close-modal:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: rotate(90deg);
+}
+
+.modal-body {
+    display: flex;
+    gap: 32px;
+    padding: 40px;
+}
+
+.modal-poster {
+    flex-shrink: 0;
+    width: 300px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.modal-poster img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.modal-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#modalTitle {
+    font-size: 32px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 16px;
+    line-height: 1.2;
+}
+
+.modal-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.modal-meta span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    padding: 6px 14px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e9ecef 100%);
+    border-radius: 8px;
+}
+
+#modalRating {
+    color: #f59e0b;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.modal-description {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #475569;
+    margin-bottom: 32px;
+    flex: 1;
+}
+
+.modal-play-btn {
+    padding: 16px 32px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    align-self: flex-start;
+}
+
+.modal-play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(102, 126, 234, 0.5);
+}
+
+.modal-play-btn span {
+    font-size: 18px;
+}
+
+/* Responsive Modal */
+@media (max-width: 768px) {
+    .modal-body {
+        flex-direction: column;
+        padding: 24px;
     }
+
+    .modal-poster {
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    #modalTitle {
+        font-size: 24px;
+    }
+
+    .modal-meta {
+        gap: 10px;
+    }
+
+    .modal-meta span {
+        font-size: 12px;
+        padding: 5px 12px;
+    }
+
+    .modal-description {
+        font-size: 14px;
+    }
+
+    .modal-play-btn {
+        width: 100%;
+        padding: 14px;
+    }
+
+    .close-modal {
+        top: 12px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
+        font-size: 20px;
+    }
+}
+
+/* Scrollbar for Modal */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 4px;
 }
