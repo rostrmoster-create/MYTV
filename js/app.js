@@ -454,9 +454,25 @@ class App {
                             </div>
                         ` : ''}
 
-                        <div class="channel-logo">
-                            ${channel.logo}
-                        </div>
+                        ${channel.logo ? `
+                            <img
+                                src="${channel.logo}"
+                                alt="${channel.name}"
+                                class="channel-logo-img"
+                                style="width: 100%; height: 100%; object-fit: contain; padding: 1rem;"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+
+                            <div
+                                class="channel-logo"
+                                style="display: none;">
+                                ${channel.name.substring(0, 3).toUpperCase()}
+                            </div>
+                        ` : `
+                            <div class="channel-logo">
+                                ${channel.name.substring(0, 3).toUpperCase()}
+                            </div>
+                        `}
+
                     </div>
 
                     <div class="channel-info">
