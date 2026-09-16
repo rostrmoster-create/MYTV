@@ -25,9 +25,11 @@
                         id="serverUrl" 
                         name="serverUrl" 
                         placeholder="http://example.com" 
-                        value="http://b2wbs.com"
                         required
                     >
+                    <small style="color: #64748b; font-size: 12px; margin-top: 4px; display: block;">
+                        Enter your IPTV server URL
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -37,7 +39,6 @@
                         id="username" 
                         name="username" 
                         placeholder="Enter your username"
-                        value="02DC5442951471A"
                         required
                     >
                 </div>
@@ -49,7 +50,6 @@
                         id="password" 
                         name="password" 
                         placeholder="Enter your password"
-                        value="TQo9GN8An0"
                         required
                     >
                 </div>
@@ -57,6 +57,12 @@
                 <div id="errorMessage" class="error-message" style="display: none;"></div>
 
                 <button type="submit" class="submit-btn">Sign In</button>
+
+                <div style="text-align: center; margin-top: 20px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                    <p style="margin: 0; color: #1e40af; font-size: 13px; font-weight: 500;">
+                        💡 Any valid credentials will be accepted
+                    </p>
+                </div>
             </form>
 
             <div class="footer-text">
@@ -72,8 +78,8 @@
     </div>
 
     <!-- Scripts with cache busting -->
-    <script src="js/storage.js?v=2"></script>
-    <script src="js/api.js?v=2"></script>
-    <script src="js/auth.js?v=2"></script>
+    <script src="js/storage.js?v=3"></script>
+    <script src="js/api.js?v=3"></script>
+    <script src="js/auth.js?v=3"></script>
 </body>
 </html>
