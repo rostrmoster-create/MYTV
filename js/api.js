@@ -1,272 +1,208 @@
-/**
- * MYTV API Module
- * Handles connection to Xtream Codes IPTV API
- */
+// api.js - Xtream Codes API Integration
 
-class API {
-    constructor() {
-        this.storage = new Storage();
-        this.baseUrl = '';
-        this.username = '';
-        this.password = '';
-        this.serverInfo = null;
-        this.userInfo = null;
-    }
+const API = {
+    serverUrl: '',
+    username: '',
+    password: '',
+    authInfo: null,
 
-    /**
-     * Initialize API with credentials
-     */
     init(serverUrl, username, password) {
-        // Clean up server URL
-        this.baseUrl = serverUrl.replace(/\/$/, ''); // Remove trailing slash
+        this.serverUrl = serverUrl.replace(/\/$/, ''); // Remove trailing slash
         this.username = username;
         this.password = password;
-    }
+    },
 
-    /**
-     * Authenticate with the server
-     */
     async authenticate() {
         try {
-            const response = await fetch(
-                `${this.baseUrl}/player_api.php?username=${this.username}&password=${this.password}`
-            );
-
+            const url = `${this.serverUrl}/player_api.php?username=${this.username}&password=${this.password}`;
+            
+            console.log('Authenticating with:', this.serverUrl);
+            
+            const response = await fetch(url);
+            
             if (!response.ok) {
-                throw new Error('Authentication failed');
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
             }
-
+            
             const data = await response.json();
-
+            
             if (data.user_info && data.user_info.auth === 1) {
-                this.serverInfo = data.server_info;
-                this.userInfo = data.user_info;
-                return {
-                    success: true,
-                    data: data
-                };
+                this.authInfo = data;
+                console.log('Authentication successful');
+                return data;
+            } else if (data.user_info && data.user_info.auth === 0) {
+                throw new Error('Invalid username or password');
             } else {
-                return {
-                    success: false,
-                    error: 'Invalid credentials'
-                };
+                throw new Error('Invalid server response');
             }
+            
         } catch (error) {
             console.error('Authentication error:', error);
-            return {
-                success: false,
-                error: error.message || 'Connection failed. Please check your server URL.'
-            };
+            
+            if (error.message.includes('Failed to fetch')) {
+                throw new Error('Cannot connect to server. Please check the URL and your internet connection.');
+            }
+            
+            throw error;
         }
-    }
+    },
 
-    /**
-     * Get live categories
-     */
     async getLiveCategories() {
         try {
-            const response = await fetch(
-                `${this.baseUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_live_categories`
-            );
-
+            const url = `${this.serverUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_live_categories`;
+            
+            const response = await fetch(url);
+            
             if (!response.ok) {
-                throw new Error('Failed to fetch categories');
+                throw new Error('Failed to fetch live categories');
             }
-
-            return await response.json();
+            
+            const data = await response.json();
+            return data;
+            
         } catch (error) {
-            console.error('Error fetching categories:', error);
+            console.error('Error fetching live categories:', error);
             return [];
         }
-    }
+    },
 
-    /**
-     * Get live streams
-     */
     async getLiveStreams(categoryId = null) {
         try {
-            let url = `${this.baseUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_live_streams`;
+            let url = `${this.serverUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_live_streams`;
             
             if (categoryId) {
                 url += `&category_id=${categoryId}`;
             }
-
+            
             const response = await fetch(url);
-
+            
             if (!response.ok) {
-                throw new Error('Failed to fetch streams');
+                throw new Error('Failed to fetch live streams');
             }
-
-            return await response.json();
+            
+            const data = await response.json();
+            return data;
+            
         } catch (error) {
-            console.error('Error fetching streams:', error);
-            return [];
+            console.error('Error fetching live streams:', error);
+            throw error;
         }
-    }
+    },
 
-    /**
-     * Get VOD categories
-     */
     async getVODCategories() {
         try {
-            const response = await fetch(
-                `${this.baseUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_vod_categories`
-            );
-
+            const url = `${this.serverUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_vod_categories`;
+            
+            const response = await fetch(url);
+            
             if (!response.ok) {
                 throw new Error('Failed to fetch VOD categories');
             }
-
-            return await response.json();
+            
+            const data = await response.json();
+            return data;
+            
         } catch (error) {
             console.error('Error fetching VOD categories:', error);
             return [];
         }
-    }
+    },
 
-    /**
-     * Get VOD streams (movies)
-     */
     async getVODStreams(categoryId = null) {
         try {
-            let url = `${this.baseUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_vod_streams`;
+            let url = `${this.serverUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_vod_streams`;
             
             if (categoryId) {
                 url += `&category_id=${categoryId}`;
             }
-
+            
             const response = await fetch(url);
-
+            
             if (!response.ok) {
                 throw new Error('Failed to fetch VOD streams');
             }
-
-            return await response.json();
+            
+            const data = await response.json();
+            return data;
+            
         } catch (error) {
             console.error('Error fetching VOD streams:', error);
-            return [];
+            throw error;
         }
-    }
+    },
 
-    /**
-     * Get VOD info
-     */
-    async getVODInfo(vodId) {
-        try {
-            const response = await fetch(
-                `${this.baseUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_vod_info&vod_id=${vodId}`
-            );
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch VOD info');
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching VOD info:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Get series categories
-     */
     async getSeriesCategories() {
         try {
-            const response = await fetch(
-                `${this.baseUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_series_categories`
-            );
-
+            const url = `${this.serverUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_series_categories`;
+            
+            const response = await fetch(url);
+            
             if (!response.ok) {
                 throw new Error('Failed to fetch series categories');
             }
-
-            return await response.json();
+            
+            const data = await response.json();
+            return data;
+            
         } catch (error) {
             console.error('Error fetching series categories:', error);
             return [];
         }
-    }
+    },
 
-    /**
-     * Get series
-     */
     async getSeries(categoryId = null) {
         try {
-            let url = `${this.baseUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_series`;
+            let url = `${this.serverUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_series`;
             
             if (categoryId) {
                 url += `&category_id=${categoryId}`;
             }
-
+            
             const response = await fetch(url);
-
+            
             if (!response.ok) {
                 throw new Error('Failed to fetch series');
             }
-
-            return await response.json();
+            
+            const data = await response.json();
+            return data;
+            
         } catch (error) {
             console.error('Error fetching series:', error);
-            return [];
+            throw error;
         }
-    }
+    },
 
-    /**
-     * Get series info
-     */
     async getSeriesInfo(seriesId) {
         try {
-            const response = await fetch(
-                `${this.baseUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_series_info&series_id=${seriesId}`
-            );
-
+            const url = `${this.serverUrl}/player_api.php?username=${this.username}&password=${this.password}&action=get_series_info&series_id=${seriesId}`;
+            
+            const response = await fetch(url);
+            
             if (!response.ok) {
                 throw new Error('Failed to fetch series info');
             }
-
-            return await response.json();
+            
+            const data = await response.json();
+            return data;
+            
         } catch (error) {
             console.error('Error fetching series info:', error);
-            return null;
+            throw error;
         }
-    }
+    },
 
-    /**
-     * Build stream URL for live channel
-     */
-    getLiveStreamUrl(streamId, extension = 'ts') {
-        return `${this.baseUrl}/live/${this.username}/${this.password}/${streamId}.${extension}`;
-    }
+    buildLiveStreamUrl(streamId, extension = 'ts') {
+        return `${this.serverUrl}/live/${this.username}/${this.password}/${streamId}.${extension}`;
+    },
 
-    /**
-     * Build stream URL for VOD
-     */
-    getVODStreamUrl(streamId, extension = 'mp4') {
-        return `${this.baseUrl}/movie/${this.username}/${this.password}/${streamId}.${extension}`;
-    }
+    buildVODStreamUrl(streamId, extension = 'mp4') {
+        return `${this.serverUrl}/movie/${this.username}/${this.password}/${streamId}.${extension}`;
+    },
 
-    /**
-     * Build stream URL for series episode
-     */
-    getSeriesStreamUrl(streamId, extension = 'mp4') {
-        return `${this.baseUrl}/series/${this.username}/${this.password}/${streamId}.${extension}`;
+    buildSeriesStreamUrl(streamId, extension = 'mp4') {
+        return `${this.serverUrl}/series/${this.username}/${this.password}/${streamId}.${extension}`;
     }
+};
 
-    /**
-     * Get user info
-     */
-    getUserInfo() {
-        return this.userInfo;
-    }
-
-    /**
-     * Get server info
-     */
-    getServerInfo() {
-        return this.serverInfo;
-    }
-}
-
-// Export for use in other modules
-window.API = API;
+console.log('API module loaded successfully');
