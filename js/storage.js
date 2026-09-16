@@ -1,202 +1,150 @@
-/**
- * MYTV Storage Module
- * Handles localStorage operations for user data and app state
- */
+// storage.js - Local Storage Management with Fallback
 
-class Storage {
-    constructor() {
-        this.keys = {
-            USER: 'mytvUser',
-            FAVORITES: 'mytvFavorites',
-            RECENT: 'mytvRecent',
-            SETTINGS: 'mytvSettings'
-        };
-    }
+class StorageManager {
+    static memoryStorage = {}; // Fallback storage
 
-    /**
-     * Get user data
-     */
-    getUser() {
+    static isLocalStorageAvailable() {
         try {
-            const userData = localStorage.getItem(this.keys.USER);
-            return userData ? JSON.parse(userData) : null;
-        } catch (e) {
-            console.error('Error reading user data:', e);
-            return null;
-        }
-    }
-
-    /**
-     * Set user data
-     */
-    setUser(userData) {
-        try {
-            localStorage.setItem(this.keys.USER, JSON.stringify(userData));
+            const test = '__storage_test__';
+            localStorage.setItem(test, test);
+            localStorage.removeItem(test);
             return true;
         } catch (e) {
-            console.error('Error saving user data:', e);
             return false;
         }
     }
 
-    /**
-     * Check if user is logged in
-     */
-    isLoggedIn() {
-        const user = this.getUser();
-        return user && user.loggedIn === true;
-    }
-
-    /**
-     * Logout user
-     */
-    logout() {
-        localStorage.removeItem(this.keys.USER);
-    }
-
-    /**
-     * Get favorites
-     */
-    getFavorites() {
+    static getItem(key) {
         try {
-            const favorites = localStorage.getItem(this.keys.FAVORITES);
-            return favorites ? JSON.parse(favorites) : [];
-        } catch (e) {
-            console.error('Error reading favorites:', e);
-            return [];
-        }
-    }
-
-    /**
-     * Add to favorites
-     */
-    addFavorite(item) {
-        try {
-            const favorites = this.getFavorites();
-            const exists = favorites.find(fav => fav.id === item.id && fav.type === item.type);
-            
-            if (!exists) {
-                favorites.unshift(item);
-                localStorage.setItem(this.keys.FAVORITES, JSON.stringify(favorites));
-                return true;
+            if (this.isLocalStorageAvailable()) {
+                return localStorage.getItem(key);
+            } else {
+                return this.memoryStorage[key] || null;
             }
-            return false;
         } catch (e) {
-            console.error('Error adding favorite:', e);
-            return false;
+            console.warn('Storage get failed, using memory:', e);
+            return this.memoryStorage[key] || null;
         }
     }
 
-    /**
-     * Remove from favorites
-     */
-    removeFavorite(id, type) {
+    static setItem(key, value) {
         try {
-            let favorites = this.getFavorites();
-            favorites = favorites.filter(fav => !(fav.id === id && fav.type === type));
-            localStorage.setItem(this.keys.FAVORITES, JSON.stringify(favorites));
-            return true;
+            if (this.isLocalStorageAvailable()) {
+                localStorage.setItem(key, value);
+            } else {
+                this.memoryStorage[key] = value;
+            }
         } catch (e) {
-            console.error('Error removing favorite:', e);
-            return false;
+            console.warn('Storage set failed, using memory:', e);
+            this.memoryStorage[key] = value;
         }
     }
 
-    /**
-     * Check if item is favorited
-     */
-    isFavorited(id, type) {
-        const favorites = this.getFavorites();
-        return favorites.some(fav => fav.id === id && fav.type === type);
-    }
-
-    /**
-     * Get recently watched
-     */
-    getRecent() {
+    static removeItem(key) {
         try {
-            const recent = localStorage.getItem(this.keys.RECENT);
-            return recent ? JSON.parse(recent) : [];
+            if (this.isLocalStorageAvailable()) {
+                localStorage.removeItem(key);
+            } else {
+                delete this.memoryStorage[key];
+            }
         } catch (e) {
-            console.error('Error reading recent:', e);
-            return [];
+            console.warn('Storage remove failed:', e);
+            delete this.memoryStorage[key];
         }
     }
 
-    /**
-     * Add to recently watched
-     */
-    addRecent(item) {
-        try {
-            let recent = this.getRecent();
-            
-            // Remove if already exists
-            recent = recent.filter(r => !(r.id === item.id && r.type === item.type));
-            
-            // Add to beginning
-            recent.unshift({
-                ...item,
-                watchedAt: new Date().toISOString()
-            });
-            
-            // Keep only last 50 items
-            recent = recent.slice(0, 50);
-            
-            localStorage.setItem(this.keys.RECENT, JSON.stringify(recent));
-            return true;
-        } catch (e) {
-            console.error('Error adding recent:', e);
-            return false;
-        }
+    static saveUserCredentials(username, password, serverUrl) {
+        const userData = {
+            username,
+            password,
+            serverUrl,
+            loginTime: new Date().toISOString()
+        };
+        this.setItem('mytv_user', JSON.stringify(userData));
     }
 
-    /**
-     * Clear recently watched
-     */
-    clearRecent() {
-        localStorage.removeItem(this.keys.RECENT);
+    static getUserCredentials() {
+        const data = this.getItem('mytv_user');
+        return data ? JSON.parse(data) : null;
     }
 
-    /**
-     * Get settings
-     */
-    getSettings() {
-        try {
-            const settings = localStorage.getItem(this.keys.SETTINGS);
-            return settings ? JSON.parse(settings) : this.getDefaultSettings();
-        } catch (e) {
-            console.error('Error reading settings:', e);
-            return this.getDefaultSettings();
-        }
+    static clearUserCredentials() {
+        this.removeItem('mytv_user');
     }
 
-    /**
-     * Get default settings
-     */
-    getDefaultSettings() {
+    static isLoggedIn() {
+        return this.getUserCredentials() !== null;
+    }
+
+    static saveFavorites(type, favorites) {
+        this.setItem(`mytv_favorites_${type}`, JSON.stringify(favorites));
+    }
+
+    static getFavorites(type) {
+        const data = this.getItem(`mytv_favorites_${type}`);
+        return data ? JSON.parse(data) : [];
+    }
+
+    static addToRecentlyWatched(type, item) {
+        const recent = this.getRecentlyWatched();
+        
+        // Remove if already exists
+        const filtered = recent.filter(r => !(r.type === type && r.id === item.id));
+        
+        // Add to beginning
+        filtered.unshift({
+            type,
+            ...item,
+            watchedAt: new Date().toISOString()
+        });
+
+        // Keep only last 50 items
+        const limited = filtered.slice(0, 50);
+        
+        this.setItem('mytv_recently_watched', JSON.stringify(limited));
+    }
+
+    static getRecentlyWatched() {
+        const data = this.getItem('mytv_recently_watched');
+        return data ? JSON.parse(data) : [];
+    }
+
+    static clearRecentlyWatched() {
+        this.removeItem('mytv_recently_watched');
+    }
+
+    static saveSettings(settings) {
+        this.setItem('mytv_settings', JSON.stringify(settings));
+    }
+
+    static getSettings() {
+        const data = this.getItem('mytv_settings');
+        return data ? JSON.parse(data) : this.getDefaultSettings();
+    }
+
+    static getDefaultSettings() {
         return {
+            videoQuality: 'auto',
             autoplay: true,
-            quality: 'auto',
-            language: 'en',
-            subtitles: false
+            subtitles: false,
+            theme: 'light',
+            language: 'en'
         };
     }
 
-    /**
-     * Update settings
-     */
-    updateSettings(newSettings) {
-        try {
-            const currentSettings = this.getSettings();
-            const updatedSettings = { ...currentSettings, ...newSettings };
-            localStorage.setItem(this.keys.SETTINGS, JSON.stringify(updatedSettings));
-            return true;
-        } catch (e) {
-            console.error('Error updating settings:', e);
-            return false;
+    static clearAllData() {
+        if (this.isLocalStorageAvailable()) {
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.startsWith('mytv_')) {
+                    localStorage.removeItem(key);
+                }
+            });
         }
+        // Clear memory storage
+        this.memoryStorage = {};
     }
 }
 
-// Export for use in other modules
-window.Storage = Storage;
+// Don't initialize - just export the class
+console.log('StorageManager loaded successfully');
