@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -156,8 +155,8 @@
         </div>
     </div>
 
+    <!-- Load API first, then Auth -->
     <script src="js/api.js"></script>
-
     <script>
         /**
          * MYTV Authentication Module
@@ -217,10 +216,8 @@
                 // Show loading state
                 this.setLoadingState(true);
                 
-                // Simulate API call (replace this with actual API call later)
-                setTimeout(() => {
-                    this.processLogin(credentials);
-                }, 1500);
+                // Process login with real API
+                await this.processLogin(credentials);
             }
 
             /**
@@ -235,7 +232,7 @@
                 
                 // Server URL validation
                 if (!this.isValidUrl(credentials.serverUrl)) {
-                    this.showError('Please enter a valid server URL');
+                    this.showError('Please enter a valid server URL (e.g., http://example.com)');
                     return false;
                 }
                 
@@ -246,8 +243,8 @@
                 }
                 
                 // Password validation
-                if (credentials.password.length < 4) {
-                    this.showError('Password must be at least 4 characters long');
+                if (credentials.password.length < 1) {
+                    this.showError('Password is required');
                     return false;
                 }
                 
@@ -259,8 +256,8 @@
              */
             isValidUrl(string) {
                 try {
-                    // Basic URL validation
-                    const urlPattern = /^(http|https):\/\/[^ "]+$/;
+                    // Basic URL validation - allow http and https
+                    const urlPattern = /^(http|https):\/\//;
                     return urlPattern.test(string);
                 } catch (e) {
                     return false;
@@ -268,32 +265,54 @@
             }
 
             /**
-             * Process login (mock function - replace with actual API call)
+             * Process login with real API
              */
-            processLogin(credentials) {
-                // For now, we'll accept any credentials for demo purposes
-                // Later, this will connect to the actual IPTV API
-                
-                // Save credentials to localStorage
-                const userData = {
-                    profileName: credentials.profileName,
-                    serverUrl: credentials.serverUrl,
-                    username: credentials.username,
-                    loggedIn: true,
-                    loginTime: new Date().toISOString()
-                };
-                
-                localStorage.setItem('mytvUser', JSON.stringify(userData));
-                
-                // Save credentials if remember me is checked
-                if (credentials.rememberMe) {
-                    this.saveCredentials(credentials);
-                } else {
-                    this.clearSavedCredentials();
+            async processLogin(credentials) {
+                try {
+                    // Check if API class exists
+                    if (typeof API === 'undefined') {
+                        throw new Error('API module not loaded. Please refresh the page.');
+                    }
+
+                    // Initialize API
+                    const api = new API();
+                    api.init(credentials.serverUrl, credentials.username, credentials.password);
+                    
+                    // Authenticate
+                    const authResult = await api.authenticate();
+                    
+                    if (authResult.success) {
+                        // Save credentials and user data
+                        const userData = {
+                            profileName: credentials.profileName,
+                            serverUrl: credentials.serverUrl,
+                            username: credentials.username,
+                            password: credentials.password,
+                            loggedIn: true,
+                            loginTime: new Date().toISOString(),
+                            userInfo: authResult.data.user_info,
+                            serverInfo: authResult.data.server_info
+                        };
+                        
+                        localStorage.setItem('mytvUser', JSON.stringify(userData));
+                        
+                        // Save credentials if remember me is checked
+                        if (credentials.rememberMe) {
+                            this.saveCredentials(credentials);
+                        } else {
+                            this.clearSavedCredentials();
+                        }
+                        
+                        // Success - redirect to main app
+                        this.loginSuccess();
+                    } else {
+                        // Show error
+                        this.showError(authResult.error || 'Invalid credentials. Please check your server URL, username, and password.');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    this.showError(error.message || 'Connection error. Please check your server URL and internet connection.');
                 }
-                
-                // Success - redirect to main app
-                this.loginSuccess();
             }
 
             /**
@@ -350,7 +369,7 @@
                     `;
                 } else {
                     icon.innerHTML = `
-                        <path d="M10 4C4.5 4 1 10 1 10C1 10 4.5 16 10 16C15.5 16 19 10 19 10C19 10 15.5 10 10 10C15.5 10 19 10 19 10C19 10 15.5 4 10 4Z" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M10 4C4.5 4 1 10 1 10C1 10 4.5 16 10 16C15.5 16 19 10 19 10C19 10 15.5 4 10 4Z" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                         <circle cx="10" cy="10" r="3" stroke="#9CA3AF" stroke-width="1.5"/>
                     `;
                 }
@@ -451,4 +470,3 @@
     </script>
 </body>
 </html>
-```
