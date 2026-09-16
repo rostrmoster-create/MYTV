@@ -3,75 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MYTV - Your Premium IPTV Experience</title>
+    <title>MYTV - Premium IPTV Streaming</title>
     <link rel="stylesheet" href="css/app.css?v=9">
     <link rel="stylesheet" href="css/player.css?v=5">
     <link rel="stylesheet" href="css/movies.css?v=5">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <!-- Top Navigation Bar -->
-    <nav class="top-nav">
-        <div class="nav-left">
-            <button class="menu-toggle" id="menuToggle">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div class="logo">
-                <i class="fas fa-tv"></i>
-                <span>MYTV</span>
-            </div>
+    <header class="top-bar">
+        <div class="top-bar-left">
+            <button class="menu-toggle" id="menuToggle">☰</button>
+            <h1 class="logo">MYTV</h1>
         </div>
-        <div class="nav-center" id="searchContainer">
-            <!-- Global search will be inserted here -->
+        <div class="top-bar-center" id="searchContainer">
+            <!-- Global search will be injected here -->
         </div>
-        <div class="nav-right">
-            <div class="user-menu">
-                <button class="user-btn" id="userBtn">
-                    <i class="fas fa-user-circle"></i>
-                    <span id="userName">User</span>
-                </button>
-                <div class="user-dropdown" id="userDropdown">
-                    <a href="#" onclick="navigateTo('settings')">
-                        <i class="fas fa-cog"></i> Settings
-                    </a>
-                    <a href="#" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </div>
+        <div class="top-bar-right">
+            <span class="user-name" id="userName">User</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
-    </nav>
+    </header>
 
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
-        <nav class="sidebar-nav">
-            <a href="#" class="nav-item active" data-section="home" onclick="navigateTo('home')">
-                <i class="fas fa-home"></i>
-                <span>Home</span>
+        <nav class="nav-menu">
+            <a href="#" class="nav-item active" data-section="home">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Home</span>
             </a>
-            <a href="#" class="nav-item" data-section="liveTV" onclick="navigateTo('liveTV')">
-                <i class="fas fa-tv"></i>
-                <span>Live TV</span>
+            <a href="#" class="nav-item" data-section="livetv">
+                <span class="nav-icon">📡</span>
+                <span class="nav-text">Live TV</span>
             </a>
-            <a href="#" class="nav-item" data-section="movies" onclick="navigateTo('movies')">
-                <i class="fas fa-film"></i>
-                <span>Movies</span>
+            <a href="#" class="nav-item" data-section="movies">
+                <span class="nav-icon">🎬</span>
+                <span class="nav-text">Movies</span>
             </a>
-            <a href="#" class="nav-item" data-section="series" onclick="navigateTo('series')">
-                <i class="fas fa-video"></i>
-                <span>TV Series</span>
+            <a href="#" class="nav-item" data-section="series">
+                <span class="nav-icon">📺</span>
+                <span class="nav-text">TV Series</span>
             </a>
-            <a href="#" class="nav-item" data-section="favorites" onclick="navigateTo('favorites')">
-                <i class="fas fa-heart"></i>
-                <span>Favorites</span>
+            <a href="#" class="nav-item" data-section="favorites">
+                <span class="nav-icon">⭐</span>
+                <span class="nav-text">Favorites</span>
             </a>
-            <a href="#" class="nav-item" data-section="recentlyWatched" onclick="navigateTo('recentlyWatched')">
-                <i class="fas fa-history"></i>
-                <span>Recently Watched</span>
+            <a href="#" class="nav-item" data-section="recent">
+                <span class="nav-icon">🕒</span>
+                <span class="nav-text">Recently Watched</span>
             </a>
-            <a href="#" class="nav-item" data-section="settings" onclick="navigateTo('settings')">
-                <i class="fas fa-cog"></i>
-                <span>Settings</span>
+            <a href="#" class="nav-item" data-section="settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Settings</span>
             </a>
         </nav>
     </aside>
@@ -79,62 +61,61 @@
     <!-- Main Content Area -->
     <main class="main-content" id="mainContent">
         <!-- Home Section -->
-        <section id="homeSection" class="content-section active">
+        <section id="homeSection" class="content-section">
             <div class="welcome-banner">
-                <h1>Welcome to MYTV</h1>
-                <p>Your premium IPTV streaming experience</p>
+                <h2>Welcome to MYTV</h2>
+                <p>Your premium streaming experience</p>
             </div>
-
+            
             <div class="quick-access">
-                <h2>Quick Access</h2>
+                <h3>Quick Access</h3>
                 <div class="quick-grid">
-                    <div class="quick-card" onclick="navigateTo('liveTV')">
-                        <i class="fas fa-tv"></i>
-                        <h3>Live TV</h3>
+                    <div class="quick-card" onclick="showSection('livetv')">
+                        <span class="quick-icon">📡</span>
+                        <h4>Live TV</h4>
                         <p>Watch live channels</p>
                     </div>
-                    <div class="quick-card" onclick="navigateTo('movies')">
-                        <i class="fas fa-film"></i>
-                        <h3>Movies</h3>
+                    <div class="quick-card" onclick="showSection('movies')">
+                        <span class="quick-icon">🎬</span>
+                        <h4>Movies</h4>
                         <p>Browse movies</p>
                     </div>
-                    <div class="quick-card" onclick="navigateTo('series')">
-                        <i class="fas fa-video"></i>
-                        <h3>TV Series</h3>
-                        <p>Watch series</p>
+                    <div class="quick-card" onclick="showSection('series')">
+                        <span class="quick-icon">📺</span>
+                        <h4>TV Series</h4>
+                        <p>Watch shows</p>
                     </div>
-                    <div class="quick-card" onclick="navigateTo('favorites')">
-                        <i class="fas fa-heart"></i>
-                        <h3>Favorites</h3>
-                        <p>Your favorites</p>
+                    <div class="quick-card" onclick="showSection('favorites')">
+                        <span class="quick-icon">⭐</span>
+                        <h4>Favorites</h4>
+                        <p>Your saved content</p>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- Live TV Section -->
-        <section id="liveTVSection" class="content-section" style="display: none;">
+        <section id="livetvSection" class="content-section" style="display: none;">
             <div class="section-header">
                 <h2>Live TV Channels</h2>
                 <div class="section-controls">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="channelSearch" placeholder="Search channels...">
-                    </div>
+                    <input type="text" id="channelSearch" class="search-input" placeholder="Search channels...">
                 </div>
             </div>
-            <div id="channelList" class="channel-grid"></div>
             
-            <!-- Video Player Container -->
-            <div id="playerContainer" class="player-container" style="display: none;">
-                <div class="player-header">
-                    <h3 id="playerChannelName">Channel Name</h3>
-                    <button class="close-player" id="closePlayer">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div id="videoContainer" class="video-container">
+            <div class="tv-container">
+                <div class="video-container" id="videoContainer">
                     <video id="videoPlayer" class="video-player" controls></video>
+                    <div class="player-overlay" id="playerOverlay">
+                        <p>Select a channel to start watching</p>
+                    </div>
+                    <div class="channel-info" id="channelInfo" style="display: none;">
+                        <h3 id="currentChannelName">Channel Name</h3>
+                    </div>
+                </div>
+                
+                <div class="channel-list" id="channelList">
+                    <div class="loading">Loading channels...</div>
                 </div>
             </div>
         </section>
@@ -144,29 +125,31 @@
             <div class="section-header">
                 <h2>Movies</h2>
                 <div class="section-controls">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="movieSearch" placeholder="Search movies...">
-                    </div>
+                    <input type="text" id="movieSearch" class="search-input" placeholder="Search movies...">
+                    <select id="genreFilter" class="genre-filter">
+                        <option value="all">All Genres</option>
+                    </select>
                 </div>
             </div>
-            <div id="genreFilter" class="genre-filter"></div>
-            <div id="movieGrid" class="movie-grid"></div>
+            <div id="moviesContent" class="movies-grid">
+                <div class="loading">Loading movies...</div>
+            </div>
         </section>
 
-        <!-- TV Series Section -->
+        <!-- Series Section -->
         <section id="seriesSection" class="content-section" style="display: none;">
             <div class="section-header">
                 <h2>TV Series</h2>
                 <div class="section-controls">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="seriesSearch" placeholder="Search series...">
-                    </div>
+                    <input type="text" id="seriesSearch" class="search-input" placeholder="Search series...">
+                    <select id="seriesGenreFilter" class="genre-filter">
+                        <option value="all">All Genres</option>
+                    </select>
                 </div>
             </div>
-            <div id="seriesGenreFilter" class="genre-filter"></div>
-            <div id="seriesGrid" class="movie-grid"></div>
+            <div id="seriesContent" class="movies-grid">
+                <div class="loading">Loading series...</div>
+            </div>
         </section>
 
         <!-- Favorites Section -->
@@ -179,12 +162,10 @@
         </section>
 
         <!-- Recently Watched Section -->
-        <section id="recentlyWatchedSection" class="content-section" style="display: none;">
+        <section id="recentSection" class="content-section" style="display: none;">
             <div class="section-header">
                 <h2>Recently Watched</h2>
-                <p class="section-subtitle">Pick up where you left off</p>
             </div>
-            <div class="watched-filter" id="recentlyWatchedFilter"></div>
             <div id="recentlyWatchedContent"></div>
         </section>
 
@@ -194,7 +175,7 @@
                 <h2>Settings</h2>
             </div>
             <div class="settings-content">
-                <p>Settings panel - Coming soon</p>
+                <p>Settings panel coming soon...</p>
             </div>
         </section>
     </main>
@@ -209,14 +190,14 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="js/storage.js?v=5"></script>
-    <script src="js/api.js?v=5"></script>
-    <script src="js/player.js?v=5"></script>
-    <script src="js/channels.js?v=5"></script>
-    <script src="js/movies.js?v=5"></script>
-    <script src="js/series.js?v=6"></script>
-    <script src="js/search.js?v=7"></script>
-    <script src="js/favorites.js?v=8"></script>
+    <script src="js/storage.js?v=9"></script>
+    <script src="js/api.js?v=9"></script>
+    <script src="js/player.js?v=9"></script>
+    <script src="js/channels.js?v=9"></script>
+    <script src="js/movies.js?v=9"></script>
+    <script src="js/series.js?v=9"></script>
+    <script src="js/search.js?v=9"></script>
+    <script src="js/favorites.js?v=9"></script>
     <script src="js/recently-watched.js?v=9"></script>
     <script src="js/app.js?v=9"></script>
 </body>
