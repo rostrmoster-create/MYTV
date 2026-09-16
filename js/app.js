@@ -1,131 +1,292 @@
-// app.js - Main Application Logic
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>MYTV - Premium Streaming</title>
+    <link rel="stylesheet" href="css/app.css?v=6">
+    <link rel="stylesheet" href="css/player.css?v=6">
+    <link rel="stylesheet" href="css/movies.css?v=6">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">MYTV</h1>
+                <p class="user-info">Welcome, <span id="userName">User</span></p>
+            </div>
 
-class App {
-    constructor() {
-        this.currentSection = 'home';
-        this.init();
-    }
+            <nav class="nav-menu">
+                <a href="#" class="nav-link active" data-section="home">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Home</span>
+                </a>
+                <a href="#" class="nav-link" data-section="channels">
+                    <span class="nav-icon">📺</span>
+                    <span class="nav-text">Live TV</span>
+                </a>
+                <a href="#" class="nav-link" data-section="movies">
+                    <span class="nav-icon">🎬</span>
+                    <span class="nav-text">Movies</span>
+                </a>
+                <a href="#" class="nav-link" data-section="series">
+                    <span class="nav-icon">🎭</span>
+                    <span class="nav-text">Series</span>
+                </a>
+                <a href="#" class="nav-link" data-section="favorites">
+                    <span class="nav-icon">⭐</span>
+                    <span class="nav-text">Favorites</span>
+                </a>
+                <a href="#" class="nav-link" data-section="recent">
+                    <span class="nav-icon">🕐</span>
+                    <span class="nav-text">Recently Watched</span>
+                </a>
+                <a href="#" class="nav-link" data-section="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Settings</span>
+                </a>
+            </nav>
 
-    init() {
-        console.log('App initializing...');
-        this.setupNavigation();
-        this.showSection('home');
-        this.displayUserInfo();
-    }
+            <div class="sidebar-footer">
+                <button class="logout-btn" id="logoutBtn">
+                    <span class="nav-icon">🚪</span>
+                    <span class="nav-text">Logout</span>
+                </button>
+            </div>
+        </aside>
 
-    setupNavigation() {
-        // Mobile menu toggle
-        const menuToggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar');
-        
-        if (menuToggle && sidebar) {
-            menuToggle.addEventListener('click', () => {
-                sidebar.classList.toggle('active');
-            });
-        }
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <button class="menu-toggle" id="menuToggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <h2 class="page-title" id="pageTitle">Home</h2>
+            </header>
 
-        // Navigation links
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const section = link.dataset.section;
-                this.showSection(section);
-                
-                // Close mobile menu
-                if (sidebar) {
-                    sidebar.classList.remove('active');
-                }
-            });
-        });
+            <!-- Home Section -->
+            <section id="homeSection" class="content-section">
+                <div class="welcome-banner">
+                    <h1>Welcome to MYTV</h1>
+                    <p>Your premium streaming experience starts here</p>
+                </div>
 
-        // Logout button
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                if (confirm('Are you sure you want to logout?')) {
-                    logout();
-                }
-            });
-        }
-    }
+                <div class="quick-access">
+                    <h2>Quick Access</h2>
+                    <div class="quick-grid">
+                        <div class="quick-card" onclick="app.showSection('channels')">
+                            <div class="quick-icon">📺</div>
+                            <h3>Live TV</h3>
+                            <p>Watch live channels</p>
+                        </div>
+                        <div class="quick-card" onclick="app.showSection('movies')">
+                            <div class="quick-icon">🎬</div>
+                            <h3>Movies</h3>
+                            <p>Browse movie collection</p>
+                        </div>
+                        <div class="quick-card" onclick="app.showSection('series')">
+                            <div class="quick-icon">🎭</div>
+                            <h3>Series</h3>
+                            <p>Watch TV shows</p>
+                        </div>
+                        <div class="quick-card" onclick="app.showSection('favorites')">
+                            <div class="quick-icon">⭐</div>
+                            <h3>Favorites</h3>
+                            <p>Your saved content</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-    showSection(sectionName) {
-        // Update active nav link
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.classList.remove('active');
-            if (link.dataset.section === sectionName) {
-                link.classList.add('active');
-            }
-        });
+            <!-- Live TV Section -->
+            <section id="channelsSection" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h2>Live TV Channels</h2>
+                    <div class="search-box">
+                        <input type="text" id="channelSearch" placeholder="Search channels...">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                </div>
 
-        // Hide all sections
-        document.querySelectorAll('.content-section').forEach(section => {
-            section.style.display = 'none';
-        });
+                <div class="categories-container">
+                    <div class="categories-scroll" id="channelCategories">
+                        <!-- Categories will be loaded by JavaScript -->
+                    </div>
+                </div>
 
-        // Show selected section
-        const targetSection = document.getElementById(`${sectionName}Section`);
-        if (targetSection) {
-            targetSection.style.display = 'block';
-            this.currentSection = sectionName;
-        }
+                <div class="channels-grid" id="channelsGrid">
+                    <!-- Channels will be loaded by JavaScript -->
+                </div>
+            </section>
 
-        // Initialize section-specific managers
-        this.initializeSection(sectionName);
-    }
+            <!-- Video Player Section -->
+            <section id="playerSection" class="content-section" style="display: none;">
+                <div class="player-container">
+                    <button class="back-btn" id="backBtn">
+                        <span>←</span> Back
+                    </button>
+                    
+                    <div class="video-wrapper">
+                        <video id="videoPlayer" class="video-player" controls></video>
+                        <div class="player-info" id="playerInfo">
+                            <h2 id="playerTitle">Channel Name</h2>
+                            <p id="playerCategory">Category</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-    initializeSection(sectionName) {
-        switch(sectionName) {
-            case 'channels':
-                if (!window.channelsManager) {
-                    window.channelsManager = new ChannelsManager();
-                }
-                break;
-            case 'movies':
-                if (!window.moviesManager) {
-                    window.moviesManager = new MoviesManager();
-                }
-                break;
-            case 'series':
-                // Will implement in next stage
-                console.log('Series section - coming soon');
-                break;
-            case 'favorites':
-                this.showFavorites();
-                break;
-            case 'recent':
-                this.showRecentlyWatched();
-                break;
-        }
-    }
+            <!-- Movies Section -->
+            <section id="moviesSection" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h2>Movies</h2>
+                    <div class="search-box">
+                        <input type="text" id="movieSearch" placeholder="Search movies...">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                </div>
 
-    displayUserInfo() {
-        const user = StorageManager.getUserCredentials();
-        const userNameElement = document.getElementById('userName');
-        
-        if (user && userNameElement) {
-            userNameElement.textContent = user.username;
-        }
-    }
+                <div class="categories-container">
+                    <div class="categories-scroll" id="movieGenres">
+                        <!-- Genres will be loaded by JavaScript -->
+                    </div>
+                </div>
 
-    showFavorites() {
-        console.log('Showing favorites...');
-        // Will be implemented when we enhance favorites
-    }
+                <div class="movies-grid" id="moviesGrid">
+                    <!-- Movies will be loaded by JavaScript -->
+                </div>
+            </section>
 
-    showRecentlyWatched() {
-        console.log('Showing recently watched...');
-        const recent = StorageManager.getRecentlyWatched();
-        console.log('Recently watched items:', recent);
-        // Will be implemented when we enhance recently watched
-    }
-}
+            <!-- Movie Modal -->
+            <div id="movieModal" class="modal">
+                <div class="modal-content">
+                    <button class="close-modal">&times;</button>
+                    <div class="modal-body">
+                        <div class="modal-poster">
+                            <img id="modalPoster" src="" alt="Movie Poster">
+                        </div>
+                        <div class="modal-info">
+                            <h2 id="modalTitle">Movie Title</h2>
+                            <div class="modal-meta">
+                                <span id="modalYear">2024</span>
+                                <span id="modalRating">⭐ 8.5</span>
+                                <span id="modalGenre">Action</span>
+                                <span id="modalDuration">120 min</span>
+                            </div>
+                            <p id="modalDescription" class="modal-description">
+                                Movie description goes here...
+                            </p>
+                            <button id="modalPlayButton" class="modal-play-btn">
+                                <span>▶</span> Play Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-// Initialize app when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        window.app = new App();
-    });
-} else {
-    window.app = new App();
-}
+            <!-- Series Section -->
+            <section id="seriesSection" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h2>TV Series</h2>
+                    <div class="search-box">
+                        <input type="text" id="seriesSearch" placeholder="Search series...">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                </div>
+
+                <div class="categories-container">
+                    <div class="categories-scroll" id="seriesGenres">
+                        <!-- Genres will be loaded by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="movies-grid" id="seriesGrid">
+                    <!-- Series will be loaded by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Series Modal -->
+            <div id="seriesModal" class="modal">
+                <div class="modal-content">
+                    <button class="close-modal">&times;</button>
+                    <div class="modal-body">
+                        <div class="modal-poster">
+                            <img id="seriesModalPoster" src="" alt="Series Poster">
+                        </div>
+                        <div class="modal-info">
+                            <h2 id="seriesModalTitle">Series Title</h2>
+                            <div class="modal-meta">
+                                <span id="seriesModalYear">2024</span>
+                                <span id="seriesModalRating">⭐ 8.5</span>
+                                <span id="seriesModalGenre">Drama</span>
+                                <span id="seriesModalEpisodes">45 min</span>
+                                <span id="seriesModalSeasons">5 Seasons</span>
+                            </div>
+                            <p id="seriesModalDescription" class="modal-description">
+                                Series description goes here...
+                            </p>
+                            <div class="series-episodes" id="seriesEpisodesList">
+                                <!-- Episodes will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Favorites Section -->
+            <section id="favoritesSection" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h2>My Favorites</h2>
+                </div>
+                <div class="coming-soon">
+                    <div class="coming-soon-icon">⭐</div>
+                    <h3>Your Favorites</h3>
+                    <p>Your favorite content will appear here</p>
+                </div>
+            </section>
+
+            <!-- Recently Watched Section -->
+            <section id="recentSection" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h2>Recently Watched</h2>
+                </div>
+                <div class="coming-soon">
+                    <div class="coming-soon-icon">🕐</div>
+                    <h3>Continue Watching</h3>
+                    <p>Your recently watched content will appear here</p>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settingsSection" class="content-section" style="display: none;">
+                <div class="section-header">
+                    <h2>Settings</h2>
+                </div>
+                <div class="coming-soon">
+                    <div class="coming-soon-icon">⚙️</div>
+                    <h3>Settings</h3>
+                    <p>Settings panel coming soon</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts with cache busting -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="js/storage.js?v=6"></script>
+    <script src="js/api.js?v=6"></script>
+    <script src="js/auth.js?v=6"></script>
+    <script src="js/app.js?v=6"></script>
+    <script src="js/player.js?v=6"></script>
+    <script src="js/channels.js?v=6"></script>
+    <script src="js/movies.js?v=6"></script>
+    <script src="js/series.js?v=6"></script>
+</body>
+</html>
