@@ -7,9 +7,9 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>MYTV - Premium Streaming</title>
-    <link rel="stylesheet" href="css/app.css?v=7">
-    <link rel="stylesheet" href="css/player.css?v=7">
-    <link rel="stylesheet" href="css/movies.css?v=7">
+    <link rel="stylesheet" href="css/app.css?v=8">
+    <link rel="stylesheet" href="css/player.css?v=8">
+    <link rel="stylesheet" href="css/movies.css?v=8">
 </head>
 <body>
     <div class="app-container">
@@ -245,10 +245,13 @@
                 <div class="section-header">
                     <h2>My Favorites</h2>
                 </div>
-                <div class="coming-soon">
-                    <div class="coming-soon-icon">⭐</div>
-                    <h3>Your Favorites</h3>
-                    <p>Your favorite content will appear here</p>
+
+                <div class="favorites-filter" id="favoritesFilter">
+                    <!-- Filter tabs will be loaded by JavaScript -->
+                </div>
+
+                <div id="favoritesContent">
+                    <!-- Favorites content will be loaded by JavaScript -->
                 </div>
             </section>
 
@@ -280,14 +283,15 @@
 
     <!-- Scripts with cache busting -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="js/storage.js?v=7"></script>
-    <script src="js/api.js?v=7"></script>
-    <script src="js/auth.js?v=7"></script>
-    <script src="js/app.js?v=7"></script>
-    <script src="js/player.js?v=7"></script>
-    <script src="js/channels.js?v=7"></script>
-    <script src="js/movies.js?v=7"></script>
-    <script src="js/series.js?v=7"></script>
-    <script src="js/search.js?v=7"></script>
+    <script src="js/storage.js?v=8"></script>
+    <script src="js/api.js?v=8"></script>
+    <script src="js/auth.js?v=8"></script>
+    <script src="js/app.js?v=8"></script>
+    <script src="js/player.js?v=8"></script>
+    <script src="js/channels.js?v=8"></script>
+    <script src="js/movies.js?v=8"></script>
+    <script src="js/series.js?v=8"></script>
+    <script src="js/search.js?v=8"></script>
+    <script src="js/favorites.js?v=8"></script>
 </body>
 </html>
