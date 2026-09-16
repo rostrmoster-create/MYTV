@@ -1,4 +1,4 @@
-// Main Application Controller - v9
+// Main Application Controller - v10
 
 // Check authentication
 function checkAuth() {
@@ -89,6 +89,11 @@ function initializeSection(sectionName) {
                 window.initRecentlyWatchedManager();
             }
             break;
+        case 'settings':
+            if (typeof window.initSettingsManager === 'function') {
+                window.initSettingsManager();
+            }
+            break;
     }
 }
 
@@ -162,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show home section by default
     showSection('home');
 
-    console.log('MYTV App initialized successfully - v9');
+    console.log('MYTV App initialized successfully - v10');
 });
 
 // Make functions globally available
