@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - MYTV</title>
-    <link rel="stylesheet" href="css/login.css?v=12">
+    <link rel="stylesheet" href="css/login.css?v=13">
 </head>
 <body>
     <div class="login-container">
@@ -15,15 +15,42 @@
             </div>
 
             <div id="errorMessage" class="error-message"></div>
+            <div id="loadingMessage" class="loading-message" style="display: none;">
+                <div class="spinner"></div>
+                <p>Authenticating...</p>
+            </div>
 
             <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="profileName">Profile Name</label>
+                    <input 
+                        type="text" 
+                        id="profileName" 
+                        class="form-input" 
+                        placeholder="My IPTV Profile"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="serverUrl">Server URL</label>
+                    <input 
+                        type="text" 
+                        id="serverUrl" 
+                        class="form-input" 
+                        placeholder="http://example.com:8080 or http://example.com"
+                        required
+                    >
+                    <small class="form-hint">Include port if required (e.g., :8080)</small>
+                </div>
+
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input 
                         type="text" 
                         id="username" 
                         class="form-input" 
-                        placeholder="Enter any username"
+                        placeholder="Enter your username"
                         required
                     >
                 </div>
@@ -34,48 +61,51 @@
                         type="password" 
                         id="password" 
                         class="form-input" 
-                        placeholder="Enter any password"
+                        placeholder="Enter your password"
                         required
                     >
                 </div>
 
-                <button type="submit" class="login-btn">Sign In</button>
+                <button type="submit" class="login-btn" id="loginBtn">
+                    Sign In
+                </button>
             </form>
 
             <div class="divider">
-                <span>Demo Access</span>
+                <span>Information</span>
             </div>
 
             <div class="demo-info">
-                <h3>🎬 Welcome to MYTV!</h3>
-                <p>Enter any username and password to explore the platform</p>
+                <h3>🔐 Secure Xtream Codes Login</h3>
+                <p>Enter your Xtream Codes server credentials to access your IPTV content</p>
             </div>
 
             <div class="features">
-                <h4>Features Include:</h4>
+                <h4>What You Get:</h4>
                 <div class="feature-list">
                     <div class="feature-item">
                         <span class="feature-icon">📡</span>
-                        <span>Live TV Channels</span>
+                        <span>Your Live TV Channels</span>
                     </div>
                     <div class="feature-item">
                         <span class="feature-icon">🎬</span>
-                        <span>Movies Library</span>
+                        <span>Your Movies Library</span>
                     </div>
                     <div class="feature-item">
                         <span class="feature-icon">📺</span>
-                        <span>TV Series</span>
+                        <span>Your TV Series</span>
                     </div>
                     <div class="feature-item">
                         <span class="feature-icon">⭐</span>
-                        <span>Favorites & Recently Watched</span>
+                        <span>Favorites & Watch History</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="js/storage.js?v=12"></script>
-    <script src="js/auth.js?v=12"></script>
+    <script src="js/storage.js?v=13"></script>
+    <script src="js/api.js?v=13"></script>
+    <script src="js/auth.js?v=13"></script>
 </body>
 </html>
