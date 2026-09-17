@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const session = require('express-session');
 require('dotenv').config();
 
 const xtreamRoutes = require('./routes/xtream');
@@ -21,9 +20,26 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// CORS configuration
+// CORS configuration - CRITICAL for cross-site requests
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'https://rostrmoster-create.github.io',
+    origin: function(origin, callback) {
+        // Allow requests from GitHub Pages
+        const allowedOrigins = [
+            'https://rostrmoster-create.github.io',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000'
+        ];
+        
+        // Allow requests with no origin (mobile apps, curl, etc)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('Blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -32,19 +48,6 @@ app.use(cors({
 // Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Session configuration
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'change_this_to_a_random_secret_string_min_32_characters',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    }
-}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
