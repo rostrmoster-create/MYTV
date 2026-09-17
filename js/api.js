@@ -1,7 +1,8 @@
+```javascript
 // MYTV API Client - v15 Backend Proxy
 class XtreamAPI {
-    // TODO: Replace with your actual deployed backend URL after deployment
-    static BACKEND_URL = 'https://your-backend.vercel.app/api/xtream';
+    // Deployed Vercel backend
+    static BACKEND_URL = 'https://mytv-sgsd4.vercel.app/api/xtream';
     
     // Session-based authentication - credentials stored server-side
     static async authenticate(serverUrl, username, password, profileName) {
@@ -11,7 +12,7 @@ class XtreamAPI {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                credentials: 'include', // Important: includes session cookie
+                credentials: 'include',
                 body: JSON.stringify({
                     serverUrl,
                     username,
@@ -288,3 +289,4 @@ class XtreamAPI {
         }
     }
 }
+```
