@@ -1,16 +1,47 @@
-// MYTV API Client - v15 Backend Proxy
+// MYTV API Client - v16 JWT Token Authentication
 class XtreamAPI {
     static BACKEND_URL = 'https://mytv-pi-eight.vercel.app/api/xtream';
     
-    // Session-based authentication - credentials stored server-side
+    // Get token from localStorage
+    static getToken() {
+        const tokenData = localStorage.getItem('authToken');
+        return tokenData;
+    }
+
+    // Set token in localStorage
+    static setToken(token) {
+        localStorage.setItem('authToken', token);
+    }
+
+    // Remove token
+    static clearToken() {
+        localStorage.removeItem('authToken');
+    }
+
+    // Get headers with auth token
+    static getHeaders() {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        const token = this.getToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        return headers;
+    }
+    
+    // Authenticate and get token
     static async authenticate(serverUrl, username, password, profileName) {
         try {
+            console.log('🔵 Calling backend authenticate...');
+            
             const response = await fetch(`${this.BACKEND_URL}/authenticate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                credentials: 'include', // Important: includes session cookie
                 body: JSON.stringify({
                     serverUrl,
                     username,
@@ -25,37 +56,58 @@ class XtreamAPI {
                 throw new Error(data.error || 'Authentication failed');
             }
 
+            console.log('🟢 Authentication successful, received token');
+
+            // Store the token
+            this.setToken(data.token);
+
             return data;
         } catch (error) {
-            console.error('Authentication error:', error);
+            console.error('🔴 Authentication error:', error);
             throw error;
         }
     }
 
-    // Check if user has active session
+    // Check if token is valid
     static async checkSession() {
         try {
+            const token = this.getToken();
+            if (!token) {
+                console.log('🔴 No token found');
+                return false;
+            }
+
             const response = await fetch(`${this.BACKEND_URL}/session-status`, {
-                credentials: 'include'
+                headers: this.getHeaders()
             });
 
+            if (!response.ok) {
+                console.log('🔴 Token invalid or expired');
+                this.clearToken();
+                return false;
+            }
+
             const data = await response.json();
+            console.log('🟢 Session valid:', data);
             return data.authenticated || false;
         } catch (error) {
-            console.error('Session check error:', error);
+            console.error('🔴 Session check error:', error);
+            this.clearToken();
             return false;
         }
     }
 
-    // Logout and clear session
+    // Logout
     static async logout() {
         try {
             await fetch(`${this.BACKEND_URL}/logout`, {
                 method: 'POST',
-                credentials: 'include'
+                headers: this.getHeaders()
             });
         } catch (error) {
             console.error('Logout error:', error);
+        } finally {
+            this.clearToken();
         }
     }
 
@@ -63,7 +115,7 @@ class XtreamAPI {
     static async getLiveCategories() {
         try {
             const response = await fetch(`${this.BACKEND_URL}/live-categories`, {
-                credentials: 'include'
+                headers: this.getHeaders()
             });
 
             if (!response.ok) {
@@ -85,7 +137,7 @@ class XtreamAPI {
                 : `${this.BACKEND_URL}/live-streams`;
 
             const response = await fetch(url, {
-                credentials: 'include'
+                headers: this.getHeaders()
             });
 
             if (!response.ok) {
@@ -104,10 +156,7 @@ class XtreamAPI {
         try {
             const response = await fetch(`${this.BACKEND_URL}/live-stream-url`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
+                headers: this.getHeaders(),
                 body: JSON.stringify({ streamId })
             });
 
@@ -127,7 +176,7 @@ class XtreamAPI {
     static async getVODCategories() {
         try {
             const response = await fetch(`${this.BACKEND_URL}/vod-categories`, {
-                credentials: 'include'
+                headers: this.getHeaders()
             });
 
             if (!response.ok) {
@@ -149,7 +198,7 @@ class XtreamAPI {
                 : `${this.BACKEND_URL}/vod-streams`;
 
             const response = await fetch(url, {
-                credentials: 'include'
+                headers: this.getHeaders()
             });
 
             if (!response.ok) {
@@ -168,10 +217,7 @@ class XtreamAPI {
         try {
             const response = await fetch(`${this.BACKEND_URL}/vod-stream-url`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
+                headers: this.getHeaders(),
                 body: JSON.stringify({ streamId, containerExtension })
             });
 
@@ -191,7 +237,7 @@ class XtreamAPI {
     static async getVODInfo(vodId) {
         try {
             const response = await fetch(`${this.BACKEND_URL}/vod-info/${vodId}`, {
-                credentials: 'include'
+                headers: this.getHeaders()
             });
 
             if (!response.ok) {
@@ -209,7 +255,7 @@ class XtreamAPI {
     static async getSeriesCategories() {
         try {
             const response = await fetch(`${this.BACKEND_URL}/series-categories`, {
-                credentials: 'include'
+                headers: this.getHeaders()
             });
 
             if (!response.ok) {
@@ -231,7 +277,7 @@ class XtreamAPI {
                 : `${this.BACKEND_URL}/series`;
 
             const response = await fetch(url, {
-                credentials: 'include'
+                headers: this.getHeaders()
             });
 
             if (!response.ok) {
@@ -249,7 +295,7 @@ class XtreamAPI {
     static async getSeriesInfo(seriesId) {
         try {
             const response = await fetch(`${this.BACKEND_URL}/series-info/${seriesId}`, {
-                credentials: 'include'
+                headers: this.getHeaders()
             });
 
             if (!response.ok) {
@@ -268,10 +314,7 @@ class XtreamAPI {
         try {
             const response = await fetch(`${this.BACKEND_URL}/series-stream-url`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
+                headers: this.getHeaders(),
                 body: JSON.stringify({ streamId, containerExtension })
             });
 
