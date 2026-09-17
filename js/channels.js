@@ -1,10 +1,12 @@
-// Channel Manager - v12
+// Channel Manager - v13 (Real Xtream Codes API)
 class ChannelManager {
     constructor() {
         this.channels = [];
+        this.categories = [];
         this.filteredChannels = [];
         this.currentChannel = null;
         this.initialized = false;
+        this.selectedCategory = null;
     }
 
     async loadChannels() {
@@ -13,145 +15,79 @@ class ChannelManager {
         const channelList = document.getElementById('channelList');
         if (!channelList) return;
 
-        channelList.innerHTML = '<div class="loading">Loading channels...</div>';
+        channelList.innerHTML = '<div class="loading">Loading channels from your server...</div>';
 
         try {
-            // Try to load from API first
-            const apiChannels = await APIClient.getLiveStreams();
-            
-            if (apiChannels && apiChannels.length > 0) {
-                this.channels = apiChannels;
-            } else {
-                // Fallback to demo channels
-                this.channels = this.getDemoChannels();
+            // Check if user is authenticated
+            if (!XtreamAPI.isAuthenticated()) {
+                channelList.innerHTML = '<div class="loading">Please login to view channels</div>';
+                return;
             }
+
+            // Load categories first
+            this.categories = await XtreamAPI.getLiveCategories();
+            
+            // Load all live streams
+            const streams = await XtreamAPI.getLiveStreams();
+            
+            if (!streams || streams.length === 0) {
+                channelList.innerHTML = '<div class="loading">No channels available in your account</div>';
+                this.initialized = true;
+                return;
+            }
+
+            // Map streams to channel format
+            this.channels = streams.map(stream => ({
+                id: stream.stream_id || stream.num,
+                num: stream.num,
+                name: stream.name,
+                stream_icon: stream.stream_icon,
+                category_id: stream.category_id,
+                category_name: stream.category_name,
+                stream_type: stream.stream_type,
+                epg_channel_id: stream.epg_channel_id,
+                added: stream.added,
+                custom_sid: stream.custom_sid,
+                tv_archive: stream.tv_archive,
+                direct_source: stream.direct_source,
+                tv_archive_duration: stream.tv_archive_duration
+            }));
+
+            this.filteredChannels = [...this.channels];
+            this.renderChannels();
+            this.renderCategoryFilter();
+            this.setupSearch();
+            this.initialized = true;
+
+            console.log(`Loaded ${this.channels.length} channels from Xtream API`);
         } catch (error) {
             console.error('Error loading channels:', error);
-            // Use demo channels on error
-            this.channels = this.getDemoChannels();
+            channelList.innerHTML = '<div class="loading">Error loading channels. Please check your connection.</div>';
         }
-
-        this.filteredChannels = [...this.channels];
-        this.renderChannels();
-        this.setupSearch();
-        this.initialized = true;
     }
 
-    getDemoChannels() {
-        return [
-            {
-                id: '1',
-                name: 'BBC News',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/BBC_News_2019.svg/320px-BBC_News_2019.svg.png',
-                stream_url: 'https://d2vnbkvjbims7j.cloudfront.net/containerA/LTN/playlist.m3u8',
-                category: 'News'
-            },
-            {
-                id: '2',
-                name: 'CNN International',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/CNN.svg/320px-CNN.svg.png',
-                stream_url: 'https://cnn-cnninternational-1-eu.rakuten.wurl.tv/playlist.m3u8',
-                category: 'News'
-            },
-            {
-                id: '3',
-                name: 'National Geographic',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/National_Geographic_Channel.svg/320px-National_Geographic_Channel.svg.png',
-                stream_url: 'https://admdn2.cdn.mangomolo.com/nagtv/smil:nagtv.stream.smil/playlist.m3u8',
-                category: 'Documentary'
-            },
-            {
-                id: '4',
-                name: 'Discovery Channel',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Discovery_Channel_-_Logo_2019.svg/320px-Discovery_Channel_-_Logo_2019.svg.png',
-                stream_url: 'https://food-dlvr-ott.akamaized.net/primary/3/686a061683e44b518cdf57c4cc09497a/index_19.m3u8',
-                category: 'Documentary'
-            },
-            {
-                id: '5',
-                name: 'ESPN',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/320px-ESPN_wordmark.svg.png',
-                stream_url: 'https://d2vnbkvjbims7j.cloudfront.net/containerA/LTN/playlist.m3u8',
-                category: 'Sports'
-            },
-            {
-                id: '6',
-                name: 'Sky Sports',
-                logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e4/Sky_Sports_logo_2020.svg/320px-Sky_Sports_logo_2020.svg.png',
-                stream_url: 'https://d2vnbkvjbims7j.cloudfront.net/containerA/LTN/playlist.m3u8',
-                category: 'Sports'
-            },
-            {
-                id: '7',
-                name: 'HBO',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/HBO_logo.svg/320px-HBO_logo.svg.png',
-                stream_url: 'https://food-dlvr-ott.akamaized.net/primary/3/686a061683e44b518cdf57c4cc09497a/index_19.m3u8',
-                category: 'Entertainment'
-            },
-            {
-                id: '8',
-                name: 'MTV',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/MTV_2021_%28brand_version%29.svg/320px-MTV_2021_%28brand_version%29.svg.png',
-                stream_url: 'https://d2vnbkvjbims7j.cloudfront.net/containerA/LTN/playlist.m3u8',
-                category: 'Music'
-            },
-            {
-                id: '9',
-                name: 'Cartoon Network',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Cartoon_Network_2010_logo.svg/320px-Cartoon_Network_2010_logo.svg.png',
-                stream_url: 'https://food-dlvr-ott.akamaized.net/primary/3/686a061683e44b518cdf57c4cc09497a/index_19.m3u8',
-                category: 'Kids'
-            },
-            {
-                id: '10',
-                name: 'Disney Channel',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/2019_Disney_Channel_logo.svg/320px-2019_Disney_Channel_logo.svg.png',
-                stream_url: 'https://d2vnbkvjbims7j.cloudfront.net/containerA/LTN/playlist.m3u8',
-                category: 'Kids'
-            },
-            {
-                id: '11',
-                name: 'Food Network',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Food_Network_logo.svg/320px-Food_Network_logo.svg.png',
-                stream_url: 'https://food-dlvr-ott.akamaized.net/primary/3/686a061683e44b518cdf57c4cc09497a/index_19.m3u8',
-                category: 'Lifestyle'
-            },
-            {
-                id: '12',
-                name: 'History Channel',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/History_%282021%29.svg/320px-History_%282021%29.svg.png',
-                stream_url: 'https://d2vnbkvjbims7j.cloudfront.net/containerA/LTN/playlist.m3u8',
-                category: 'Documentary'
-            },
-            {
-                id: '13',
-                name: 'Comedy Central',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Comedy_Central_2018.svg/320px-Comedy_Central_2018.svg.png',
-                stream_url: 'https://food-dlvr-ott.akamaized.net/primary/3/686a061683e44b518cdf57c4cc09497a/index_19.m3u8',
-                category: 'Entertainment'
-            },
-            {
-                id: '14',
-                name: 'Fox News',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Fox_News_Channel_logo.svg/320px-Fox_News_Channel_logo.svg.png',
-                stream_url: 'https://d2vnbkvjbims7j.cloudfront.net/containerA/LTN/playlist.m3u8',
-                category: 'News'
-            },
-            {
-                id: '15',
-                name: 'Animal Planet',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/2018_Animal_Planet_logo.svg/320px-2018_Animal_Planet_logo.svg.png',
-                stream_url: 'https://food-dlvr-ott.akamaized.net/primary/3/686a061683e44b518cdf57c4cc09497a/index_19.m3u8',
-                category: 'Documentary'
-            },
-            {
-                id: '16',
-                name: 'Nickelodeon',
-                logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Nickelodeon_2009_logo.svg/320px-Nickelodeon_2009_logo.svg.png',
-                stream_url: 'https://d2vnbkvjbims7j.cloudfront.net/containerA/LTN/playlist.m3u8',
-                category: 'Kids'
-            }
-        ];
+    renderCategoryFilter() {
+        const searchContainer = document.querySelector('#livetvSection .section-controls');
+        if (!searchContainer || this.categories.length === 0) return;
+
+        // Check if filter already exists
+        if (document.getElementById('categoryFilterSelect')) return;
+
+        const filterSelect = document.createElement('select');
+        filterSelect.id = 'categoryFilterSelect';
+        filterSelect.className = 'genre-filter';
+        filterSelect.innerHTML = '<option value="">All Categories</option>';
+        
+        this.categories.forEach(cat => {
+            filterSelect.innerHTML += `<option value="${cat.category_id}">${cat.category_name}</option>`;
+        });
+
+        filterSelect.addEventListener('change', (e) => {
+            this.selectedCategory = e.target.value;
+            this.applyFilters();
+        });
+
+        searchContainer.appendChild(filterSelect);
     }
 
     renderChannels() {
@@ -163,15 +99,20 @@ class ChannelManager {
             return;
         }
 
-        const html = this.filteredChannels.map(channel => `
-            <div class="channel-item" onclick="window.channelManager.playChannel(${JSON.stringify(channel).replace(/"/g, '&quot;')})">
-                <img src="${channel.logo || 'assets/placeholder.jpg'}" alt="${channel.name}" onerror="this.src='assets/placeholder.jpg'">
-                <div class="channel-item-info">
-                    <h4>${channel.name}</h4>
-                    <p>${channel.category || 'General'}</p>
+        const html = this.filteredChannels.map(channel => {
+            const logo = channel.stream_icon || 'assets/placeholder.jpg';
+            const categoryName = channel.category_name || 'General';
+            
+            return `
+                <div class="channel-item" onclick="window.channelManager.playChannel(${JSON.stringify(channel).replace(/"/g, '&quot;')})">
+                    <img src="${logo}" alt="${channel.name}" onerror="this.src='assets/placeholder.jpg'">
+                    <div class="channel-item-info">
+                        <h4>${channel.name}</h4>
+                        <p>${categoryName}</p>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         channelList.innerHTML = html;
     }
@@ -185,8 +126,8 @@ class ChannelManager {
                 type: 'channel',
                 id: channel.id,
                 name: channel.name,
-                logo: channel.logo,
-                category: channel.category
+                logo: channel.stream_icon,
+                category: channel.category_name
             });
         }
 
@@ -204,12 +145,16 @@ class ChannelManager {
             playerOverlay.style.display = 'none';
         }
 
+        // Get stream URL from API
+        const streamUrl = XtreamAPI.getLiveStreamUrl(channel.id);
+        
         // Play stream
-        if (window.playerManager && channel.stream_url) {
-            window.playerManager.playStream(channel.stream_url);
+        if (window.playerManager && streamUrl) {
+            window.playerManager.playStream(streamUrl);
+            console.log('Playing channel:', channel.name, 'URL:', streamUrl);
+        } else {
+            console.error('Unable to play channel - no stream URL');
         }
-
-        console.log('Playing channel:', channel.name);
     }
 
     setupSearch() {
@@ -217,19 +162,26 @@ class ChannelManager {
         if (!searchInput) return;
 
         searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            
-            if (query === '') {
-                this.filteredChannels = [...this.channels];
-            } else {
-                this.filteredChannels = this.channels.filter(channel =>
-                    channel.name.toLowerCase().includes(query) ||
-                    (channel.category && channel.category.toLowerCase().includes(query))
-                );
-            }
-            
-            this.renderChannels();
+            this.applyFilters();
         });
+    }
+
+    applyFilters() {
+        const searchInput = document.getElementById('channelSearch');
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        
+        this.filteredChannels = this.channels.filter(channel => {
+            const matchesSearch = !query || 
+                channel.name.toLowerCase().includes(query) ||
+                (channel.category_name && channel.category_name.toLowerCase().includes(query));
+            
+            const matchesCategory = !this.selectedCategory || 
+                channel.category_id == this.selectedCategory;
+            
+            return matchesSearch && matchesCategory;
+        });
+        
+        this.renderChannels();
     }
 }
 
