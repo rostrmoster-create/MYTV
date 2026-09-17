@@ -81,7 +81,8 @@ class AuthManager {
 
     static redirectToLogin() {
         if (!window.location.pathname.includes('login.html') && 
-            !window.location.pathname.endsWith('/')) {
+            !window.location.pathname.endsWith('/') &&
+            !window.location.pathname.endsWith('/index.html')) {
             window.location.href = 'login.html';
         }
     }
