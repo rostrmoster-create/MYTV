@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - MYTV</title>
+    <title>MYTV - Login</title>
     <link rel="stylesheet" href="css/login.css">
 </head>
 <body>
@@ -11,38 +11,64 @@
         <div class="login-card">
             <div class="login-header">
                 <h1>MYTV</h1>
-                <p>Your Premium IPTV Experience</p>
+                <p>Premium IPTV Streaming</p>
             </div>
 
             <form id="login-form" class="login-form">
                 <div class="form-group">
                     <label for="profile-name">Profile Name</label>
-                    <input type="text" id="profile-name" name="profile-name" placeholder="My IPTV" required>
+                    <input 
+                        type="text" 
+                        id="profile-name" 
+                        placeholder="My Profile" 
+                        required
+                    >
                 </div>
 
                 <div class="form-group">
                     <label for="server-url">Server URL</label>
-                    <input type="text" id="server-url" name="server-url" placeholder="http://example.com:8080" required>
+                    <input 
+                        type="text" 
+                        id="server-url" 
+                        placeholder="http://example.com:8080" 
+                        required
+                    >
                 </div>
 
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="username" required>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        placeholder="Enter username" 
+                        required
+                        autocomplete="username"
+                    >
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="password" required>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        placeholder="Enter password" 
+                        required
+                        autocomplete="current-password"
+                    >
                 </div>
 
-                <div id="error-message" class="error-message" style="display: none;"></div>
+                <div id="error-message" class="error-message"></div>
 
                 <button type="submit" class="login-btn">Login</button>
             </form>
+
+            <div class="login-footer">
+                <p>Enter your Xtream Codes credentials to continue</p>
+            </div>
         </div>
     </div>
 
-    <!-- Scripts - v16 JWT Token Authentication -->
+    <!-- Scripts with cache busting -->
     <script src="js/storage.js?v=16"></script>
     <script src="js/api.js?v=16"></script>
     <script src="js/auth.js?v=16"></script>
