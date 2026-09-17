@@ -1,16 +1,32 @@
 const express = require('express');
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 
-// Middleware to check if user is authenticated
+// Get JWT secret from environment
+const JWT_SECRET = process.env.SESSION_SECRET || 'change_this_to_a_random_secret_string_min_32_characters';
+
+// Middleware to verify and decode JWT token
 const requireAuth = (req, res, next) => {
-    if (!req.session.xtreamCredentials) {
-        return res.status(401).json({ error: 'Not authenticated' });
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Not authenticated - no token provided' });
     }
-    next();
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.xtreamCredentials = decoded;
+        next();
+    } catch (error) {
+        console.error('Token verification failed:', error.message);
+        return res.status(401).json({ error: 'Not authenticated - invalid token' });
+    }
 };
 
-// Authenticate user and create session
+// Authenticate user and create JWT token
 router.post('/authenticate', async (req, res) => {
     try {
         const { serverUrl, username, password, profileName } = req.body;
@@ -22,25 +38,35 @@ router.post('/authenticate', async (req, res) => {
         // Clean server URL
         const cleanServerUrl = serverUrl.replace(/\/$/, '');
 
+        console.log('Authenticating user...');
+
         // Authenticate with Xtream Codes API
         const authUrl = `${cleanServerUrl}/player_api.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
 
         const response = await axios.get(authUrl, { timeout: 10000 });
 
         if (!response.data || !response.data.user_info) {
+            console.log('Authentication failed - invalid credentials');
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Store credentials in session (server-side only)
-        req.session.xtreamCredentials = {
-            serverUrl: cleanServerUrl,
-            username,
-            password,
-            profileName
-        };
+        console.log('Authentication successful!');
 
-        // Return user info (NOT credentials)
+        // Create JWT token with credentials
+        const token = jwt.sign(
+            {
+                serverUrl: cleanServerUrl,
+                username,
+                password,
+                profileName
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        // Return token and user info (NOT credentials in the response body)
         res.json({
+            token,
             user_info: response.data.user_info,
             server_info: response.data.server_info || {}
         });
@@ -59,27 +85,23 @@ router.post('/authenticate', async (req, res) => {
     }
 });
 
-// Check session status
-router.get('/session-status', (req, res) => {
+// Check token validity
+router.get('/session-status', requireAuth, (req, res) => {
     res.json({
-        authenticated: !!req.session.xtreamCredentials
+        authenticated: true,
+        profile: req.xtreamCredentials.profileName
     });
 });
 
-// Logout
+// Logout (client-side will delete token)
 router.post('/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            return res.status(500).json({ error: 'Logout failed' });
-        }
-        res.json({ message: 'Logged out successfully' });
-    });
+    res.json({ message: 'Logged out successfully' });
 });
 
 // Get Live Categories
 router.get('/live-categories', requireAuth, async (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const url = `${serverUrl}/player_api.php?username=${username}&password=${password}&action=get_live_categories`;
 
         const response = await axios.get(url, { timeout: 10000 });
@@ -94,7 +116,7 @@ router.get('/live-categories', requireAuth, async (req, res) => {
 // Get Live Streams
 router.get('/live-streams', requireAuth, async (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const categoryId = req.query.category_id;
 
         let url = `${serverUrl}/player_api.php?username=${username}&password=${password}&action=get_live_streams`;
@@ -114,7 +136,7 @@ router.get('/live-streams', requireAuth, async (req, res) => {
 // Get Live Stream URL
 router.post('/live-stream-url', requireAuth, (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const { streamId } = req.body;
 
         if (!streamId) {
@@ -133,7 +155,7 @@ router.post('/live-stream-url', requireAuth, (req, res) => {
 // Get VOD Categories
 router.get('/vod-categories', requireAuth, async (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const url = `${serverUrl}/player_api.php?username=${username}&password=${password}&action=get_vod_categories`;
 
         const response = await axios.get(url, { timeout: 10000 });
@@ -148,7 +170,7 @@ router.get('/vod-categories', requireAuth, async (req, res) => {
 // Get VOD Streams
 router.get('/vod-streams', requireAuth, async (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const categoryId = req.query.category_id;
 
         let url = `${serverUrl}/player_api.php?username=${username}&password=${password}&action=get_vod_streams`;
@@ -168,7 +190,7 @@ router.get('/vod-streams', requireAuth, async (req, res) => {
 // Get VOD Stream URL
 router.post('/vod-stream-url', requireAuth, (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const { streamId, containerExtension } = req.body;
 
         if (!streamId) {
@@ -188,7 +210,7 @@ router.post('/vod-stream-url', requireAuth, (req, res) => {
 // Get VOD Info
 router.get('/vod-info/:vodId', requireAuth, async (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const { vodId } = req.params;
 
         const url = `${serverUrl}/player_api.php?username=${username}&password=${password}&action=get_vod_info&vod_id=${vodId}`;
@@ -205,7 +227,7 @@ router.get('/vod-info/:vodId', requireAuth, async (req, res) => {
 // Get Series Categories
 router.get('/series-categories', requireAuth, async (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const url = `${serverUrl}/player_api.php?username=${username}&password=${password}&action=get_series_categories`;
 
         const response = await axios.get(url, { timeout: 10000 });
@@ -220,7 +242,7 @@ router.get('/series-categories', requireAuth, async (req, res) => {
 // Get Series
 router.get('/series', requireAuth, async (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const categoryId = req.query.category_id;
 
         let url = `${serverUrl}/player_api.php?username=${username}&password=${password}&action=get_series`;
@@ -240,7 +262,7 @@ router.get('/series', requireAuth, async (req, res) => {
 // Get Series Info
 router.get('/series-info/:seriesId', requireAuth, async (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const { seriesId } = req.params;
 
         const url = `${serverUrl}/player_api.php?username=${username}&password=${password}&action=get_series_info&series_id=${seriesId}`;
@@ -257,7 +279,7 @@ router.get('/series-info/:seriesId', requireAuth, async (req, res) => {
 // Get Series Stream URL
 router.post('/series-stream-url', requireAuth, (req, res) => {
     try {
-        const { serverUrl, username, password } = req.session.xtreamCredentials;
+        const { serverUrl, username, password } = req.xtreamCredentials;
         const { streamId, containerExtension } = req.body;
 
         if (!streamId) {
