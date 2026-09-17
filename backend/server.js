@@ -1,10 +1,9 @@
-// MYTV Backend Server - v15
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const session = require('express-session');
 const rateLimit = require('express-rate-limit');
+const session = require('express-session');
+require('dotenv').config();
 
 const xtreamRoutes = require('./routes/xtream');
 
@@ -16,82 +15,60 @@ app.use(helmet());
 
 // Rate limiting
 const limiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
     message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
 
 // CORS configuration
-const corsOptions = {
+app.use(cors({
     origin: process.env.FRONTEND_URL || 'https://rostrmoster-create.github.io',
     credentials: true,
-    optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// Body parsing
+// Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'change_this_secret_in_production',
+    secret: process.env.SESSION_SECRET || 'change_this_to_a_random_secret_string_min_32_characters',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     }
 }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString(),
-        service: 'MYTV Backend API'
-    });
+    res.json({ status: 'ok', message: 'MYTV Backend is running' });
 });
 
 // API routes
 app.use('/api/xtream', xtreamRoutes);
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error('Error:', err.message);
-    res.status(err.status || 500).json({
-        success: false,
-        message: err.message || 'Internal server error',
-        errorType: 'server_error'
-    });
-});
-
 // 404 handler
 app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: 'Endpoint not found'
+    res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+    res.status(500).json({ 
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
     });
 });
 
-// Start server
 app.listen(PORT, () => {
-    console.log(`=================================`);
-    console.log(`MYTV Backend Server - v15`);
-    console.log(`=================================`);
+    console.log(`MYTV Backend running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`Port: ${PORT}`);
-    console.log(`Frontend URL: ${process.env.FRONTEND_URL}`);
-    console.log(`Server started at: ${new Date().toISOString()}`);
-    console.log(`=================================`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
-        console.log('HTTP server closed');
-    });
 });
