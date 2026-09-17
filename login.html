@@ -4,108 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - MYTV</title>
-    <link rel="stylesheet" href="css/login.css?v=13">
+    <link rel="stylesheet" href="css/login.css">
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
-            <div class="logo-section">
-                <h1 class="logo">MYTV</h1>
-                <p class="tagline">Your Premium IPTV Experience</p>
+            <div class="login-header">
+                <h1>MYTV</h1>
+                <p>Your Premium IPTV Experience</p>
             </div>
 
-            <div id="errorMessage" class="error-message"></div>
-            <div id="loadingMessage" class="loading-message" style="display: none;">
-                <div class="spinner"></div>
-                <p>Authenticating...</p>
-            </div>
-
-            <form id="loginForm" class="login-form">
+            <form id="login-form" class="login-form">
                 <div class="form-group">
-                    <label for="profileName">Profile Name</label>
-                    <input 
-                        type="text" 
-                        id="profileName" 
-                        class="form-input" 
-                        placeholder="My IPTV Profile"
-                        required
-                    >
+                    <label for="profile-name">Profile Name</label>
+                    <input type="text" id="profile-name" name="profile-name" placeholder="My IPTV" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="serverUrl">Server URL</label>
-                    <input 
-                        type="text" 
-                        id="serverUrl" 
-                        class="form-input" 
-                        placeholder="http://example.com:8080 or http://example.com"
-                        required
-                    >
-                    <small class="form-hint">Include port if required (e.g., :8080)</small>
+                    <label for="server-url">Server URL</label>
+                    <input type="text" id="server-url" name="server-url" placeholder="http://example.com:8080" required>
                 </div>
 
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        class="form-input" 
-                        placeholder="Enter your username"
-                        required
-                    >
+                    <input type="text" id="username" name="username" placeholder="username" required>
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        class="form-input" 
-                        placeholder="Enter your password"
-                        required
-                    >
+                    <input type="password" id="password" name="password" placeholder="password" required>
                 </div>
 
-                <button type="submit" class="login-btn" id="loginBtn">
-                    Sign In
-                </button>
+                <div id="error-message" class="error-message" style="display: none;"></div>
+
+                <button type="submit" class="login-btn">Login</button>
             </form>
-
-            <div class="divider">
-                <span>Information</span>
-            </div>
-
-            <div class="demo-info">
-                <h3>🔐 Secure Xtream Codes Login</h3>
-                <p>Enter your Xtream Codes server credentials to access your IPTV content</p>
-            </div>
-
-            <div class="features">
-                <h4>What You Get:</h4>
-                <div class="feature-list">
-                    <div class="feature-item">
-                        <span class="feature-icon">📡</span>
-                        <span>Your Live TV Channels</span>
-                    </div>
-                    <div class="feature-item">
-                        <span class="feature-icon">🎬</span>
-                        <span>Your Movies Library</span>
-                    </div>
-                    <div class="feature-item">
-                        <span class="feature-icon">📺</span>
-                        <span>Your TV Series</span>
-                    </div>
-                    <div class="feature-item">
-                        <span class="feature-icon">⭐</span>
-                        <span>Favorites & Watch History</span>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
-    <script src="js/storage.js?v=13"></script>
-    <script src="js/api.js?v=13"></script>
-    <script src="js/auth.js?v=13"></script>
+    <script src="js/storage.js?v=15"></script>
+    <script src="js/api.js?v=15"></script>
+    <script src="js/auth.js?v=15"></script>
 </body>
 </html>
