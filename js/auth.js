@@ -12,8 +12,12 @@ class AuthManager {
             loginBtn.disabled = true;
             errorMsg.style.display = 'none';
 
+            console.log('Attempting authentication...');
+
             // Authenticate via backend - returns token
             const response = await XtreamAPI.authenticate(serverUrl, username, password, profileName);
+
+            console.log('Authentication successful, token received');
 
             // Token is already stored by XtreamAPI.authenticate()
             // Save profile info to localStorage (NOT credentials)
@@ -25,10 +29,10 @@ class AuthManager {
             };
 
             localStorage.setItem('currentProfile', JSON.stringify(profileData));
-
-            console.log('Authentication successful, redirecting to app...');
+            console.log('Profile data saved to localStorage');
 
             // Redirect to app
+            console.log('Redirecting to app.html...');
             window.location.href = 'app.html';
 
         } catch (error) {
@@ -61,6 +65,8 @@ class AuthManager {
     }
 
     static async checkAuth() {
+        console.log('Checking authentication...');
+        
         // Check if user has JWT token
         const token = XtreamAPI.getToken();
         
@@ -69,6 +75,8 @@ class AuthManager {
             this.redirectToLogin();
             return false;
         }
+
+        console.log('Token found in localStorage');
 
         // Check if profile data exists
         const profileData = localStorage.getItem('currentProfile');
@@ -79,8 +87,11 @@ class AuthManager {
             return false;
         }
 
+        console.log('Profile data found');
+
         // Verify token is still valid by checking session status
         try {
+            console.log('Verifying token with backend...');
             const sessionStatus = await XtreamAPI.checkSession();
             
             if (!sessionStatus || !sessionStatus.authenticated) {
@@ -91,7 +102,7 @@ class AuthManager {
                 return false;
             }
 
-            console.log('Authentication verified, user is logged in');
+            console.log('Authentication verified successfully, user is logged in');
             return true;
 
         } catch (error) {
@@ -107,11 +118,14 @@ class AuthManager {
         if (!window.location.pathname.includes('login.html') && 
             !window.location.pathname.endsWith('/') &&
             !window.location.pathname.endsWith('/index.html')) {
+            console.log('Redirecting to login page...');
             window.location.href = 'login.html';
         }
     }
 
     static async logout() {
+        console.log('Logging out...');
+        
         // Clear JWT token
         await XtreamAPI.logout();
         
@@ -158,11 +172,16 @@ if (window.location.pathname.includes('login.html') || window.location.pathname.
 // Check auth on app pages
 if (window.location.pathname.includes('app.html')) {
     document.addEventListener('DOMContentLoaded', async () => {
+        console.log('App page loaded, checking authentication...');
+        
         const isAuthenticated = await AuthManager.checkAuth();
         
         if (!isAuthenticated) {
+            console.log('Not authenticated, will redirect to login');
             return; // Will be redirected by checkAuth
         }
+
+        console.log('User authenticated, loading app...');
 
         // Display user info
         const profile = AuthManager.getCurrentProfile();
