@@ -1,219 +1,88 @@
-// Series Manager - v12
+// Series Manager - v13 (Real Xtream Codes API)
 class SeriesManager {
     constructor() {
         this.allSeries = [];
+        this.categories = [];
         this.filteredSeries = [];
-        this.genres = new Set();
+        this.selectedCategory = null;
     }
 
     async loadSeries() {
+        const container = document.getElementById('seriesContent');
+        if (container) {
+            container.innerHTML = '<div class="loading">Loading series from your server...</div>';
+        }
+
         try {
-            const apiSeries = await APIClient.getSeries();
-            
-            if (apiSeries && apiSeries.length > 0) {
-                this.allSeries = apiSeries;
-            } else {
-                this.allSeries = this.getDemoSeries();
+            // Check authentication
+            if (!XtreamAPI.isAuthenticated()) {
+                if (container) {
+                    container.innerHTML = '<div class="loading">Please login to view series</div>';
+                }
+                return;
             }
+
+            // Load categories
+            this.categories = await XtreamAPI.getSeriesCategories();
+            
+            // Load all series
+            const series = await XtreamAPI.getSeries();
+            
+            if (!series || series.length === 0) {
+                if (container) {
+                    container.innerHTML = '<div class="loading">No series available in your account</div>';
+                }
+                return;
+            }
+
+            // Map series to format
+            this.allSeries = series.map(s => ({
+                id: s.series_id || s.num,
+                num: s.num,
+                name: s.name,
+                title: s.name,
+                cover: s.cover,
+                poster: s.cover,
+                category_id: s.category_id,
+                category_name: s.category_name,
+                rating: s.rating || 'N/A',
+                rating_5based: s.rating_5based,
+                year: this.extractYear(s.name),
+                genre: s.category_name,
+                plot: s.plot,
+                cast: s.cast,
+                director: s.director,
+                releaseDate: s.releaseDate,
+                last_modified: s.last_modified
+            }));
+
+            this.filteredSeries = [...this.allSeries];
+            this.renderCategoryFilter();
+            this.renderSeries();
+            this.setupFilters();
+
+            console.log(`Loaded ${this.allSeries.length} series from Xtream API`);
         } catch (error) {
             console.error('Error loading series:', error);
-            this.allSeries = this.getDemoSeries();
+            if (container) {
+                container.innerHTML = '<div class="loading">Error loading series. Please check your connection.</div>';
+            }
         }
-
-        this.extractGenres();
-        this.filteredSeries = [...this.allSeries];
-        this.renderSeries();
-        this.setupFilters();
     }
 
-    getDemoSeries() {
-        return [
-            {
-                id: 's1',
-                title: 'Breaking Bad',
-                poster: 'https://image.tmdb.org/t/p/w500/ggFHVNu6YYI5L9pCfOacjizRGt.jpg',
-                year: '2008-2013',
-                genre: 'Crime',
-                rating: '9.5',
-                seasons: 5,
-                description: 'A high school chemistry teacher turned methamphetamine producer partners with a former student.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'Pilot', duration: '58 min' },
-                    { season: 1, episode: 2, title: 'Cat\'s in the Bag...', duration: '48 min' }
-                ]
-            },
-            {
-                id: 's2',
-                title: 'Game of Thrones',
-                poster: 'https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg',
-                year: '2011-2019',
-                genre: 'Fantasy',
-                rating: '9.3',
-                seasons: 8,
-                description: 'Nine noble families fight for control over the lands of Westeros, while an ancient enemy returns.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'Winter Is Coming', duration: '62 min' },
-                    { season: 1, episode: 2, title: 'The Kingsroad', duration: '56 min' }
-                ]
-            },
-            {
-                id: 's3',
-                title: 'Stranger Things',
-                poster: 'https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg',
-                year: '2016-',
-                genre: 'Sci-Fi',
-                rating: '8.7',
-                seasons: 4,
-                description: 'When a young boy disappears, his mother, friends, and the local police chief uncover a mystery involving secret experiments.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'Chapter One: The Vanishing of Will Byers', duration: '47 min' },
-                    { season: 1, episode: 2, title: 'Chapter Two: The Weirdo on Maple Street', duration: '55 min' }
-                ]
-            },
-            {
-                id: 's4',
-                title: 'The Crown',
-                poster: 'https://image.tmdb.org/t/p/w500/1M876KPjulVwppEpldhdc8V4o68.jpg',
-                year: '2016-',
-                genre: 'Drama',
-                rating: '8.6',
-                seasons: 6,
-                description: 'Follows the political rivalries and romance of Queen Elizabeth II\'s reign and the events that shaped the second half of the 20th century.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'Wolferton Splash', duration: '57 min' },
-                    { season: 1, episode: 2, title: 'Hyde Park Corner', duration: '56 min' }
-                ]
-            },
-            {
-                id: 's5',
-                title: 'The Mandalorian',
-                poster: 'https://image.tmdb.org/t/p/w500/sWgBv7LV2PRoQgkxwlibdGXKz1S.jpg',
-                year: '2019-',
-                genre: 'Sci-Fi',
-                rating: '8.7',
-                seasons: 3,
-                description: 'The travels of a lone bounty hunter in the outer reaches of the galaxy, far from the authority of the New Republic.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'Chapter 1: The Mandalorian', duration: '39 min' },
-                    { season: 1, episode: 2, title: 'Chapter 2: The Child', duration: '32 min' }
-                ]
-            },
-            {
-                id: 's6',
-                title: 'The Office',
-                poster: 'https://image.tmdb.org/t/p/w500/7DJKHzAi83BmQrWLrYYOqcoKfhR.jpg',
-                year: '2005-2013',
-                genre: 'Comedy',
-                rating: '9.0',
-                seasons: 9,
-                description: 'A mockumentary on a group of typical office workers, where the workday consists of ego clashes, inappropriate behavior, and tedium.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'Pilot', duration: '22 min' },
-                    { season: 1, episode: 2, title: 'Diversity Day', duration: '22 min' }
-                ]
-            },
-            {
-                id: 's7',
-                title: 'Friends',
-                poster: 'https://image.tmdb.org/t/p/w500/f496cm9enuEsZkSPzCwnTESEK5s.jpg',
-                year: '1994-2004',
-                genre: 'Comedy',
-                rating: '8.9',
-                seasons: 10,
-                description: 'Follows the personal and professional lives of six twenty to thirty-something-year-old friends living in Manhattan.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'The One Where Monica Gets a Roommate', duration: '22 min' },
-                    { season: 1, episode: 2, title: 'The One with the Sonogram at the End', duration: '22 min' }
-                ]
-            },
-            {
-                id: 's8',
-                title: 'The Witcher',
-                poster: 'https://image.tmdb.org/t/p/w500/7vjaCdMw15FEbXyLQTVa04URsPm.jpg',
-                year: '2019-',
-                genre: 'Fantasy',
-                rating: '8.2',
-                seasons: 3,
-                description: 'Geralt of Rivia, a solitary monster hunter, struggles to find his place in a world where people often prove more wicked than beasts.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'The End\'s Beginning', duration: '60 min' },
-                    { season: 1, episode: 2, title: 'Four Marks', duration: '60 min' }
-                ]
-            },
-            {
-                id: 's9',
-                title: 'Sherlock',
-                poster: 'https://image.tmdb.org/t/p/w500/7WTsnHkbA0FaG6R9twfFde0I9hl.jpg',
-                year: '2010-2017',
-                genre: 'Crime',
-                rating: '9.1',
-                seasons: 4,
-                description: 'A modern update finds the famous sleuth and his doctor partner solving crime in 21st century London.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'A Study in Pink', duration: '88 min' },
-                    { season: 1, episode: 2, title: 'The Blind Banker', duration: '89 min' }
-                ]
-            },
-            {
-                id: 's10',
-                title: 'The Boys',
-                poster: 'https://image.tmdb.org/t/p/w500/stTEycfG9928HYGEISBFaG1ngjM.jpg',
-                year: '2019-',
-                genre: 'Action',
-                rating: '8.7',
-                seasons: 4,
-                description: 'A group of vigilantes set out to take down corrupt superheroes who abuse their superpowers.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'The Name of the Game', duration: '61 min' },
-                    { season: 1, episode: 2, title: 'Cherry', duration: '59 min' }
-                ]
-            },
-            {
-                id: 's11',
-                title: 'The Last of Us',
-                poster: 'https://image.tmdb.org/t/p/w500/uKvVjHNqB5VmOrdxqAt2F7J78ED.jpg',
-                year: '2023-',
-                genre: 'Drama',
-                rating: '8.8',
-                seasons: 1,
-                description: 'After a global pandemic destroys civilization, a hardened survivor takes charge of a 14-year-old girl who may be humanity\'s last hope.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'When You\'re Lost in the Darkness', duration: '81 min' },
-                    { season: 1, episode: 2, title: 'Infected', duration: '45 min' }
-                ]
-            },
-            {
-                id: 's12',
-                title: 'Wednesday',
-                poster: 'https://image.tmdb.org/t/p/w500/9PFonBhy4cQy7Jz20NpMygczOkv.jpg',
-                year: '2022-',
-                genre: 'Comedy',
-                rating: '8.1',
-                seasons: 1,
-                description: 'Follows Wednesday Addams\' years as a student at Nevermore Academy, where she attempts to master her emerging psychic ability.',
-                episodes: [
-                    { season: 1, episode: 1, title: 'Wednesday\'s Child Is Full of Woe', duration: '47 min' },
-                    { season: 1, episode: 2, title: 'Woe Is the Loneliest Number', duration: '47 min' }
-                ]
-            }
-        ];
+    extractYear(title) {
+        const match = title.match(/\((\d{4})\)/);
+        return match ? match[1] : '';
     }
 
-    extractGenres() {
-        this.genres.clear();
-        this.allSeries.forEach(series => {
-            if (series.genre) {
-                this.genres.add(series.genre);
-            }
-        });
-
+    renderCategoryFilter() {
         const genreFilter = document.getElementById('seriesGenreFilter');
-        if (genreFilter) {
-            genreFilter.innerHTML = '<option value="all">All Genres</option>';
-            Array.from(this.genres).sort().forEach(genre => {
-                genreFilter.innerHTML += `<option value="${genre}">${genre}</option>`;
-            });
-        }
+        if (!genreFilter || this.categories.length === 0) return;
+
+        genreFilter.innerHTML = '<option value="">All Categories</option>';
+        this.categories.forEach(cat => {
+            genreFilter.innerHTML += `<option value="${cat.category_id}">${cat.category_name}</option>`;
+        });
     }
 
     renderSeries() {
@@ -225,29 +94,33 @@ class SeriesManager {
             return;
         }
 
-        const html = this.filteredSeries.map(series => `
-            <div class="movie-card" onclick="window.seriesManager.showSeriesDetails(${JSON.stringify(series).replace(/"/g, '&quot;')})">
-                <div class="movie-poster">
-                    <img src="${series.poster}" alt="${series.title}" onerror="this.src='assets/placeholder.jpg'">
-                    <div class="movie-overlay">
-                        <button class="play-btn">▶ Watch</button>
+        const html = this.filteredSeries.map(series => {
+            const poster = series.poster || series.cover || 'assets/placeholder.jpg';
+            
+            return `
+                <div class="movie-card" onclick="window.seriesManager.showSeriesDetails(${JSON.stringify(series).replace(/"/g, '&quot;')})">
+                    <div class="movie-poster">
+                        <img src="${poster}" alt="${series.title}" onerror="this.src='assets/placeholder.jpg'">
+                        <div class="movie-overlay">
+                            <button class="play-btn">▶ Watch</button>
+                        </div>
+                    </div>
+                    <div class="movie-info">
+                        <h3>${series.title}</h3>
+                        <div class="movie-meta">
+                            <span>⭐ ${series.rating}</span>
+                            ${series.year ? `<span>${series.year}</span>` : ''}
+                        </div>
                     </div>
                 </div>
-                <div class="movie-info">
-                    <h3>${series.title}</h3>
-                    <div class="movie-meta">
-                        <span>⭐ ${series.rating || 'N/A'}</span>
-                        <span>${series.seasons} Season${series.seasons !== 1 ? 's' : ''}</span>
-                    </div>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         container.innerHTML = html;
     }
 
-    showSeriesDetails(series) {
-        // Add to recently watched when viewing details
+    async showSeriesDetails(series) {
+        // Add to recently watched
         if (typeof window.addToRecentlyWatched === 'function') {
             window.addToRecentlyWatched({
                 type: 'series',
@@ -255,7 +128,7 @@ class SeriesManager {
                 seriesId: series.id,
                 seriesName: series.title,
                 title: series.title,
-                poster: series.poster,
+                poster: series.poster || series.cover,
                 year: series.year,
                 genre: series.genre,
                 rating: series.rating
@@ -264,39 +137,66 @@ class SeriesManager {
 
         const isFavorite = this.isFavorite(series.id);
         
+        // Get detailed series info with episodes
+        let seriesInfo = null;
+        let episodesHtml = '';
+        
+        try {
+            seriesInfo = await XtreamAPI.getSeriesInfo(series.id);
+            
+            if (seriesInfo && seriesInfo.episodes) {
+                episodesHtml = '<div class="series-episodes"><h3>Episodes</h3>';
+                
+                // Group episodes by season
+                const seasons = {};
+                Object.keys(seriesInfo.episodes).forEach(seasonNum => {
+                    seasons[seasonNum] = seriesInfo.episodes[seasonNum];
+                });
+
+                // Render episodes
+                Object.keys(seasons).sort((a, b) => parseInt(a) - parseInt(b)).forEach(seasonNum => {
+                    const episodes = seasons[seasonNum];
+                    episodes.forEach(ep => {
+                        episodesHtml += `
+                            <div class="episode-item" onclick="window.seriesManager.playEpisode(${JSON.stringify(series).replace(/"/g, '&quot;')}, ${JSON.stringify(ep).replace(/"/g, '&quot;')}, '${seasonNum}')">
+                                <div class="episode-number">S${seasonNum}E${ep.episode_num}</div>
+                                <div class="episode-info">
+                                    <h4>${ep.title || 'Episode ' + ep.episode_num}</h4>
+                                    <span>${ep.info?.duration || ''}</span>
+                                </div>
+                                <button class="episode-play-btn">▶</button>
+                            </div>
+                        `;
+                    });
+                });
+                
+                episodesHtml += '</div>';
+            }
+        } catch (error) {
+            console.log('Could not fetch series details:', error);
+        }
+
+        const description = seriesInfo?.info?.plot || series.plot || 'No description available';
+        const poster = series.poster || series.cover || 'assets/placeholder.jpg';
+        const numSeasons = seriesInfo?.episodes ? Object.keys(seriesInfo.episodes).length : '?';
+        
         const modal = document.getElementById('detailModal');
         const modalBody = document.getElementById('modalBody');
-        
-        const episodesHtml = series.episodes && series.episodes.length > 0 ? `
-            <div class="series-episodes">
-                <h3>Episodes</h3>
-                ${series.episodes.map(ep => `
-                    <div class="episode-item" onclick="window.seriesManager.playEpisode(${JSON.stringify(series).replace(/"/g, '&quot;')}, ${JSON.stringify(ep).replace(/"/g, '&quot;')})">
-                        <div class="episode-number">S${ep.season}E${ep.episode}</div>
-                        <div class="episode-info">
-                            <h4>${ep.title}</h4>
-                            <span>${ep.duration}</span>
-                        </div>
-                        <button class="episode-play-btn">▶</button>
-                    </div>
-                `).join('')}
-            </div>
-        ` : '';
         
         modalBody.innerHTML = `
             <div class="movie-detail">
                 <div class="movie-detail-poster">
-                    <img src="${series.poster}" alt="${series.title}" onerror="this.src='assets/placeholder.jpg'">
+                    <img src="${poster}" alt="${series.title}" onerror="this.src='assets/placeholder.jpg'">
                 </div>
                 <div class="movie-detail-content">
                     <h2>${series.title}</h2>
                     <div class="movie-detail-meta">
-                        <span class="rating">⭐ ${series.rating || 'N/A'}</span>
-                        <span>${series.year || 'N/A'}</span>
-                        <span>${series.seasons} Season${series.seasons !== 1 ? 's' : ''}</span>
-                        <span class="genre-badge">${series.genre || 'General'}</span>
+                        <span class="rating">⭐ ${series.rating}</span>
+                        ${series.year ? `<span>${series.year}</span>` : ''}
+                        <span>${numSeasons} Season${numSeasons !== 1 ? 's' : ''}</span>
+                        ${series.genre ? `<span class="genre-badge">${series.genre}</span>` : ''}
                     </div>
-                    <p class="movie-description">${series.description || 'No description available.'}</p>
+                    <p class="movie-description">${description}</p>
                     <div class="movie-actions">
                         <button class="action-btn ${isFavorite ? 'active' : ''}" onclick="window.seriesManager.toggleFavorite(${JSON.stringify(series).replace(/"/g, '&quot;')})">
                             ${isFavorite ? '❤️ Remove from Favorites' : '🤍 Add to Favorites'}
@@ -310,26 +210,27 @@ class SeriesManager {
         modal.style.display = 'block';
     }
 
-    playEpisode(series, episode) {
+    playEpisode(series, episode, seasonNum) {
         // Add episode to recently watched
         if (typeof window.addToRecentlyWatched === 'function') {
             window.addToRecentlyWatched({
                 type: 'series',
-                id: `${series.id}-s${episode.season}e${episode.episode}`,
+                id: `${series.id}-s${seasonNum}e${episode.episode_num}`,
                 seriesId: series.id,
                 seriesName: series.title,
-                title: episode.title,
-                season: episode.season,
-                episode: episode.episode,
-                poster: series.poster
+                title: episode.title || `Episode ${episode.episode_num}`,
+                season: seasonNum,
+                episode: episode.episode_num,
+                poster: series.poster || series.cover
             });
         }
 
         closeModal();
         
-        const demoUrl = 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8';
+        // Get episode stream URL
+        const streamUrl = XtreamAPI.getSeriesStreamUrl(episode.id, episode.container_extension || 'mp4');
         
-        if (window.playerManager) {
+        if (streamUrl && window.playerManager) {
             showSection('livetv');
             setTimeout(() => {
                 const channelInfo = document.getElementById('channelInfo');
@@ -337,7 +238,7 @@ class SeriesManager {
                 const playerOverlay = document.getElementById('playerOverlay');
 
                 if (channelInfo && channelName) {
-                    channelName.textContent = `${series.title} - S${episode.season}E${episode.episode}: ${episode.title}`;
+                    channelName.textContent = `${series.title} - S${seasonNum}E${episode.episode_num}: ${episode.title || 'Episode ' + episode.episode_num}`;
                     channelInfo.style.display = 'block';
                 }
 
@@ -345,10 +246,11 @@ class SeriesManager {
                     playerOverlay.style.display = 'none';
                 }
 
-                window.playerManager.playStream(demoUrl);
+                window.playerManager.playStream(streamUrl);
+                console.log('Playing episode:', episode.title);
             }, 100);
         } else {
-            alert('Player not available.');
+            alert('Stream not available.');
         }
     }
 
@@ -363,11 +265,10 @@ class SeriesManager {
                 type: 'series',
                 id: series.id,
                 title: series.title,
-                poster: series.poster,
+                poster: series.poster || series.cover,
                 year: series.year,
                 genre: series.genre,
-                rating: series.rating,
-                seasons: series.seasons
+                rating: series.rating
             });
         }
         
@@ -393,20 +294,25 @@ class SeriesManager {
         }
 
         if (genreFilter) {
-            genreFilter.addEventListener('change', () => this.applyFilters());
+            genreFilter.addEventListener('change', (e) => {
+                this.selectedCategory = e.target.value;
+                this.applyFilters();
+            });
         }
     }
 
     applyFilters() {
         const searchQuery = document.getElementById('seriesSearch')?.value.toLowerCase() || '';
-        const selectedGenre = document.getElementById('seriesGenreFilter')?.value || 'all';
-
+        
         this.filteredSeries = this.allSeries.filter(series => {
-            const matchesSearch = series.title.toLowerCase().includes(searchQuery) ||
-                                (series.description && series.description.toLowerCase().includes(searchQuery));
-            const matchesGenre = selectedGenre === 'all' || series.genre === selectedGenre;
+            const matchesSearch = !searchQuery ||
+                series.title.toLowerCase().includes(searchQuery) ||
+                (series.plot && series.plot.toLowerCase().includes(searchQuery));
             
-            return matchesSearch && matchesGenre;
+            const matchesCategory = !this.selectedCategory || 
+                series.category_id == this.selectedCategory;
+            
+            return matchesSearch && matchesCategory;
         });
 
         this.renderSeries();
