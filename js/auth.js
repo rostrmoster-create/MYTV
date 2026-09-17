@@ -1,181 +1,156 @@
-// Authentication - v14 (Real Xtream Codes API with detailed debugging)
-document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.getElementById('loginForm');
-    const errorMessage = document.getElementById('errorMessage');
-    const loadingMessage = document.getElementById('loadingMessage');
-    const loginBtn = document.getElementById('loginBtn');
+// MYTV Authentication Handler - v15
 
-    console.log('=== Auth.js v14 loaded ===');
-    console.log('XtreamAPI available:', typeof XtreamAPI !== 'undefined');
-
-    if (loginForm) {
-        loginForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            console.log('=== Login form submitted ===');
-            
-            const profileName = document.getElementById('profileName').value.trim();
-            const serverUrl = document.getElementById('serverUrl').value.trim();
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-
-            console.log('Form values:');
-            console.log('Profile Name:', profileName);
-            console.log('Server URL:', serverUrl);
-            console.log('Username:', username);
-            console.log('Password length:', password.length);
-
-            // Validate inputs
-            if (!profileName || !serverUrl || !username || !password) {
-                showError('Please fill in all fields');
-                return;
-            }
-
-            // Validate URL format
-            if (!isValidUrl(serverUrl)) {
-                showError('Invalid server URL format. Must start with http:// or https://');
-                console.error('Invalid URL format:', serverUrl);
-                return;
-            }
-
-            // Check if XtreamAPI is available
-            if (typeof XtreamAPI === 'undefined') {
-                showError('API module not loaded. Please refresh the page.');
-                console.error('XtreamAPI is not defined!');
-                return;
-            }
-
+class AuthManager {
+    static async login(serverUrl, username, password, profileName) {
+        try {
             // Show loading state
-            showLoading();
+            const loginBtn = document.querySelector('.login-btn');
+            const errorMsg = document.getElementById('error-message');
+            const originalBtnText = loginBtn.textContent;
+            
+            loginBtn.textContent = 'Authenticating...';
+            loginBtn.disabled = true;
+            errorMsg.style.display = 'none';
 
-            try {
-                console.log('Starting authentication...');
-                
-                // Authenticate with Xtream Codes API
-                const authResult = await XtreamAPI.authenticate(serverUrl, username, password);
+            // Authenticate via backend
+            const response = await XtreamAPI.authenticate(serverUrl, username, password, profileName);
 
-                console.log('Authentication result:', authResult);
+            // Save profile info to localStorage (NOT credentials)
+            const profileData = {
+                profileName: profileName,
+                userInfo: response.user_info,
+                serverInfo: response.server_info,
+                loginTime: new Date().toISOString()
+            };
 
-                if (authResult.success) {
-                    console.log('✓ Login successful!');
-                    
-                    // Normalize URL for storage
-                    const normalizedUrl = XtreamAPI.normalizeServerUrl(serverUrl);
-                    
-                    // Save credentials and user info
-                    const userData = {
-                        profileName: profileName,
-                        serverUrl: normalizedUrl,
-                        username: username,
-                        password: password,
-                        userInfo: authResult.userInfo,
-                        serverInfo: authResult.serverInfo,
-                        loginTime: new Date().toISOString()
-                    };
+            localStorage.setItem('currentProfile', JSON.stringify(profileData));
 
-                    console.log('Saving user data:', {
-                        ...userData,
-                        password: '***'
-                    });
+            // Redirect to app
+            window.location.href = 'app.html';
 
-                    StorageManager.set('currentUser', userData);
-                    StorageManager.set('xtreamCredentials', {
-                        serverUrl: normalizedUrl,
-                        username: username,
-                        password: password
-                    });
-
-                    console.log('Credentials saved, redirecting to app...');
-                    
-                    // Small delay to ensure storage is complete
-                    setTimeout(() => {
-                        window.location.href = 'app.html';
-                    }, 100);
-                    
-                } else {
-                    hideLoading();
-                    
-                    let errorMsg = authResult.message || 'Authentication failed';
-                    
-                    // Provide more specific error messages
-                    if (authResult.errorType === 'cors_or_network') {
-                        errorMsg = '❌ CORS Error or Network Issue\n\n';
-                        errorMsg += 'The server is blocking cross-origin requests or is unreachable.\n\n';
-                        errorMsg += 'Solutions:\n';
-                        errorMsg += '1. Ask your IPTV provider to enable CORS\n';
-                        errorMsg += '2. Use a CORS proxy\n';
-                        errorMsg += '3. Use a browser extension to bypass CORS\n';
-                        errorMsg += '4. Check if the server URL is correct\n\n';
-                        errorMsg += 'Check browser console (F12) for details.';
-                    } else if (authResult.errorType === 'invalid_credentials') {
-                        errorMsg = 'Invalid username or password. Please check your credentials.';
-                    } else if (authResult.errorType === 'http_error') {
-                        errorMsg = `Server error (HTTP ${authResult.statusCode}). The server may be down or the URL is incorrect.`;
-                    } else if (authResult.errorType === 'invalid_json') {
-                        errorMsg = 'The server returned an invalid response. This may not be a valid Xtream Codes server.';
-                    }
-                    
-                    console.error('Login failed:', errorMsg);
-                    console.error('Full error details:', authResult);
-                    
-                    showError(errorMsg);
-                }
-            } catch (error) {
-                hideLoading();
-                console.error('Unexpected login error:', error);
-                showError('Unexpected error: ' + error.message + '. Check console for details.');
+        } catch (error) {
+            console.error('Login failed:', error);
+            
+            const errorMsg = document.getElementById('error-message');
+            const loginBtn = document.querySelector('.login-btn');
+            
+            // Show user-friendly error messages
+            let errorText = 'Login failed. ';
+            
+            if (error.message.includes('fetch')) {
+                errorText += 'Cannot connect to backend server. Please ensure the backend is deployed and running.';
+            } else if (error.message.includes('credentials')) {
+                errorText += 'Invalid username or password.';
+            } else if (error.message.includes('timeout')) {
+                errorText += 'Connection timeout. Please try again.';
+            } else if (error.message.includes('server')) {
+                errorText += 'Cannot connect to IPTV server. Please check the server URL.';
+            } else {
+                errorText += error.message || 'Unknown error occurred.';
             }
-        });
+            
+            errorMsg.textContent = errorText;
+            errorMsg.style.display = 'block';
+            
+            loginBtn.textContent = 'Login';
+            loginBtn.disabled = false;
+        }
     }
 
-    function isValidUrl(url) {
-        try {
-            // Check if it starts with http:// or https://
-            const urlPattern = /^https?:\/\/.+/i;
-            const isValid = urlPattern.test(url);
-            
-            // Also try to parse it
-            if (isValid) {
-                const testUrl = url.includes('://') ? url : 'http://' + url;
-                new URL(testUrl);
-            }
-            
-            return isValid;
-        } catch (e) {
-            console.error('URL validation error:', e);
+    static async checkAuth() {
+        // Check if user has profile in localStorage
+        const profileData = localStorage.getItem('currentProfile');
+        
+        if (!profileData) {
+            this.redirectToLogin();
             return false;
         }
+
+        // Verify backend session is still valid
+        const hasSession = await XtreamAPI.checkSession();
+        
+        if (!hasSession) {
+            console.log('Session expired, redirecting to login...');
+            localStorage.removeItem('currentProfile');
+            this.redirectToLogin();
+            return false;
+        }
+
+        return true;
     }
 
-    function showError(message) {
-        console.log('Showing error:', message);
-        errorMessage.textContent = message;
-        errorMessage.classList.add('show');
-        errorMessage.style.display = 'block';
-        
-        // Don't auto-hide CORS errors
-        if (!message.includes('CORS')) {
-            setTimeout(() => {
-                errorMessage.classList.remove('show');
-                setTimeout(() => {
-                    errorMessage.style.display = 'none';
-                }, 300);
-            }, 8000);
+    static redirectToLogin() {
+        if (!window.location.pathname.includes('login.html') && 
+            !window.location.pathname.endsWith('/')) {
+            window.location.href = 'login.html';
         }
     }
 
-    function showLoading() {
-        console.log('Showing loading state');
-        loadingMessage.style.display = 'flex';
-        loginBtn.disabled = true;
-        loginBtn.style.opacity = '0.6';
-        errorMessage.style.display = 'none';
+    static async logout() {
+        // Clear backend session
+        await XtreamAPI.logout();
+        
+        // Clear local storage
+        localStorage.removeItem('currentProfile');
+        
+        // Redirect to login
+        window.location.href = 'login.html';
     }
 
-    function hideLoading() {
-        console.log('Hiding loading state');
-        loadingMessage.style.display = 'none';
-        loginBtn.disabled = false;
-        loginBtn.style.opacity = '1';
+    static getCurrentProfile() {
+        const profileData = localStorage.getItem('currentProfile');
+        return profileData ? JSON.parse(profileData) : null;
     }
-});
+}
+
+// Initialize auth on login page
+if (window.location.pathname.includes('login.html') || window.location.pathname.endsWith('/') || window.location.pathname.endsWith('/index.html')) {
+    document.addEventListener('DOMContentLoaded', () => {
+        const loginForm = document.getElementById('login-form');
+        
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const profileName = document.getElementById('profile-name').value.trim();
+                const serverUrl = document.getElementById('server-url').value.trim();
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+
+                if (!profileName || !serverUrl || !username || !password) {
+                    const errorMsg = document.getElementById('error-message');
+                    errorMsg.textContent = 'Please fill in all fields.';
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+
+                await AuthManager.login(serverUrl, username, password, profileName);
+            });
+        }
+    });
+}
+
+// Check auth on app pages
+if (window.location.pathname.includes('app.html')) {
+    document.addEventListener('DOMContentLoaded', async () => {
+        const isAuthenticated = await AuthManager.checkAuth();
+        
+        if (!isAuthenticated) {
+            return; // Will be redirected by checkAuth
+        }
+
+        // Display user info
+        const profile = AuthManager.getCurrentProfile();
+        if (profile) {
+            const profileNameEl = document.getElementById('profile-name-display');
+            if (profileNameEl) {
+                profileNameEl.textContent = profile.profileName;
+            }
+
+            // Display server info if available
+            if (profile.serverInfo && profile.serverInfo.server_protocol) {
+                console.log('Connected to:', profile.serverInfo.url || 'Xtream Server');
+            }
+        }
+    });
+}
