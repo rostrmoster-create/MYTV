@@ -1,4 +1,4 @@
-// Main Application Controller - v12
+// Main Application Controller - v13
 
 // Check authentication
 function checkAuth() {
@@ -7,13 +7,20 @@ function checkAuth() {
         window.location.href = 'login.html';
         return false;
     }
+    
+    // Verify Xtream credentials
+    if (!XtreamAPI.isAuthenticated()) {
+        window.location.href = 'login.html';
+        return false;
+    }
+    
     return user;
 }
 
 // Logout function
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
-        StorageManager.remove('currentUser');
+        XtreamAPI.logout();
         window.location.href = 'login.html';
     }
 }
@@ -118,10 +125,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const user = checkAuth();
     if (!user) return;
 
-    // Display username
+    // Display user info
     const userNameEl = document.getElementById('userName');
-    if (userNameEl && user.username) {
-        userNameEl.textContent = user.username;
+    if (userNameEl) {
+        userNameEl.textContent = user.profileName || user.username || 'User';
     }
 
     // Setup navigation
@@ -167,7 +174,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show home section by default
     showSection('home');
 
-    console.log('MYTV App initialized successfully - v12');
+    console.log('MYTV App initialized successfully - v13 (Xtream Codes API)');
+    console.log('Logged in as:', user.profileName);
+    console.log('Server:', user.serverUrl);
 });
 
 // Make functions globally available
