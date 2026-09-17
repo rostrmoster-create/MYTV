@@ -1,293 +1,372 @@
-// Movies Manager - v13 (Real Xtream Codes API)
-class MovieManager {
+// MYTV Movies (VOD) - v15
+
+class MoviesManager {
     constructor() {
         this.allMovies = [];
         this.categories = [];
-        this.filteredMovies = [];
-        this.selectedCategory = null;
+        this.currentCategory = 'all';
+        this.searchQuery = '';
+        this.currentMovie = null;
     }
 
-    async loadMovies() {
-        const container = document.getElementById('moviesContent');
-        if (container) {
-            container.innerHTML = '<div class="loading">Loading movies from your server...</div>';
-        }
+    async init() {
+        await this.loadCategories();
+        await this.loadMovies();
+        this.renderCategories();
+        this.renderMovies();
+        this.attachEventListeners();
+    }
 
+    async loadCategories() {
         try {
-            // Check authentication
-            if (!XtreamAPI.isAuthenticated()) {
-                if (container) {
-                    container.innerHTML = '<div class="loading">Please login to view movies</div>';
-                }
-                return;
-            }
-
-            // Load categories
-            this.categories = await XtreamAPI.getVODCategories();
-            
-            // Load all VOD streams
-            const streams = await XtreamAPI.getVODStreams();
-            
-            if (!streams || streams.length === 0) {
-                if (container) {
-                    container.innerHTML = '<div class="loading">No movies available in your account</div>';
-                }
-                return;
-            }
-
-            // Map streams to movie format
-            this.allMovies = streams.map(stream => ({
-                id: stream.stream_id || stream.num,
-                num: stream.num,
-                name: stream.name,
-                title: stream.name,
-                stream_icon: stream.stream_icon,
-                poster: stream.stream_icon,
-                category_id: stream.category_id,
-                category_name: stream.category_name,
-                container_extension: stream.container_extension || 'mp4',
-                rating: stream.rating || 'N/A',
-                rating_5based: stream.rating_5based,
-                added: stream.added,
-                year: this.extractYear(stream.name),
-                genre: stream.category_name,
-                description: stream.plot || stream.description || 'No description available'
-            }));
-
-            this.filteredMovies = [...this.allMovies];
-            this.renderCategoryFilter();
-            this.renderMovies();
-            this.setupFilters();
-
-            console.log(`Loaded ${this.allMovies.length} movies from Xtream API`);
+            const categories = await XtreamAPI.getVODCategories();
+            this.categories = categories || [];
+            console.log('Loaded VOD categories:', this.categories.length);
         } catch (error) {
-            console.error('Error loading movies:', error);
-            if (container) {
-                container.innerHTML = '<div class="loading">Error loading movies. Please check your connection.</div>';
-            }
+            console.error('Failed to load VOD categories:', error);
+            this.categories = [];
         }
     }
 
-    extractYear(title) {
-        const match = title.match(/\((\d{4})\)/);
-        return match ? match[1] : '';
+    async loadMovies(categoryId = null) {
+        try {
+            const movies = await XtreamAPI.getVODStreams(categoryId);
+            this.allMovies = movies || [];
+            console.log('Loaded movies:', this.allMovies.length);
+        } catch (error) {
+            console.error('Failed to load movies:', error);
+            this.allMovies = [];
+            this.showError('Failed to load movies. Please try again.');
+        }
     }
 
-    renderCategoryFilter() {
-        const genreFilter = document.getElementById('genreFilter');
-        if (!genreFilter || this.categories.length === 0) return;
+    renderCategories() {
+        const container = document.getElementById('movie-categories');
+        if (!container) return;
 
-        genreFilter.innerHTML = '<option value="">All Categories</option>';
-        this.categories.forEach(cat => {
-            genreFilter.innerHTML += `<option value="${cat.category_id}">${cat.category_name}</option>`;
-        });
+        const categories = [
+            { category_id: 'all', category_name: 'All Movies' },
+            ...this.categories
+        ];
+
+        container.innerHTML = categories.map(cat => `
+            <button class="category-btn ${cat.category_id === this.currentCategory ? 'active' : ''}" 
+                    data-category="${cat.category_id}">
+                ${this.escapeHtml(cat.category_name)}
+            </button>
+        `).join('');
     }
 
     renderMovies() {
-        const container = document.getElementById('moviesContent');
+        const container = document.getElementById('movies-grid');
         if (!container) return;
 
-        if (this.filteredMovies.length === 0) {
-            container.innerHTML = '<div class="loading">No movies found</div>';
+        let movies = this.allMovies;
+
+        // Apply search filter
+        if (this.searchQuery) {
+            movies = movies.filter(m => 
+                m.name.toLowerCase().includes(this.searchQuery.toLowerCase())
+            );
+        }
+
+        if (movies.length === 0) {
+            container.innerHTML = `
+                <div class="no-results">
+                    <p>No movies found</p>
+                </div>
+            `;
             return;
         }
 
-        const html = this.filteredMovies.map(movie => {
-            const poster = movie.poster || movie.stream_icon || 'assets/placeholder.jpg';
-            
+        container.innerHTML = movies.map(movie => {
+            const isFavorite = window.favoritesManager && 
+                              favoritesManager.isFavorite(movie.stream_id, 'movie');
+
             return `
-                <div class="movie-card" onclick="window.movieManager.showMovieDetails(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
+                <div class="movie-card" data-movie-id="${movie.stream_id}">
                     <div class="movie-poster">
-                        <img src="${poster}" alt="${movie.title}" onerror="this.src='assets/placeholder.jpg'">
+                        ${movie.stream_icon ? 
+                            `<img src="${this.escapeHtml(movie.stream_icon)}" 
+                                  alt="${this.escapeHtml(movie.name)}"
+                                  onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 300 450%22><rect fill=%22%23e0e7ff%22 width=%22300%22 height=%22450%22/><text x=%2250%%22 y=%2250%%22 font-size=%2260%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%236366f1%22>🎬</text></svg>'">` 
+                            : `<div class="movie-placeholder">🎬</div>`
+                        }
                         <div class="movie-overlay">
-                            <button class="play-btn">▶ Play</button>
+                            <button class="play-btn-overlay" onclick="moviesManager.playMovie(${movie.stream_id})">
+                                <svg width="48" height="48" viewBox="0 0 48 48">
+                                    <circle cx="24" cy="24" r="24" fill="rgba(255,255,255,0.9)"/>
+                                    <path d="M18 12L36 24L18 36V12Z" fill="#6366f1"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                     <div class="movie-info">
-                        <h3>${movie.title}</h3>
+                        <h3 class="movie-title">${this.escapeHtml(movie.name)}</h3>
                         <div class="movie-meta">
-                            <span>⭐ ${movie.rating}</span>
-                            ${movie.year ? `<span>${movie.year}</span>` : ''}
+                            ${movie.rating ? `<span class="rating">⭐ ${movie.rating}</span>` : ''}
+                            ${movie.category_name ? `<span class="genre">${this.escapeHtml(movie.category_name)}</span>` : ''}
+                        </div>
+                        <div class="movie-actions">
+                            <button class="action-btn" onclick="moviesManager.showMovieDetails(${movie.stream_id})">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" fill="none"/>
+                                    <path d="M8 6V8M8 10H8.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Info
+                            </button>
+                            <button class="action-btn favorite-btn ${isFavorite ? 'active' : ''}" 
+                                    onclick="moviesManager.toggleFavorite(${movie.stream_id})">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M8 2.5L9.5 6.5L14 7L11 10L12 14.5L8 12L4 14.5L5 10L2 7L6.5 6.5L8 2.5Z"/>
+                                </svg>
+                                ${isFavorite ? 'Favorited' : 'Favorite'}
+                            </button>
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
-
-        container.innerHTML = html;
     }
 
-    async showMovieDetails(movie) {
-        // Add to recently watched
-        if (typeof window.addToRecentlyWatched === 'function') {
-            window.addToRecentlyWatched({
-                type: 'movie',
-                id: movie.id,
-                title: movie.title,
-                poster: movie.poster || movie.stream_icon,
-                year: movie.year,
-                genre: movie.genre,
-                rating: movie.rating
-            });
-        }
-
-        const isFavorite = this.isFavorite(movie.id);
-        
-        // Try to get detailed info
-        let detailedInfo = null;
+    async playMovie(movieId) {
         try {
-            detailedInfo = await XtreamAPI.getVODInfo(movie.id);
+            const movie = this.allMovies.find(m => m.stream_id === movieId);
+            if (!movie) {
+                console.error('Movie not found:', movieId);
+                return;
+            }
+
+            // Get stream URL from backend - FIXED: Added await
+            const streamUrl = await XtreamAPI.getVODStreamUrl(movieId, movie.container_extension || 'mp4');
+
+            if (!streamUrl) {
+                throw new Error('Failed to get stream URL');
+            }
+
+            // Track in recently watched
+            if (window.recentlyWatchedManager) {
+                recentlyWatchedManager.addItem({
+                    id: movie.stream_id,
+                    type: 'movie',
+                    title: movie.name,
+                    thumbnail: movie.stream_icon || '',
+                    category: movie.category_name || 'Movies'
+                });
+            }
+
+            // Play in video player
+            if (window.videoPlayer) {
+                videoPlayer.play({
+                    url: streamUrl,
+                    title: movie.name,
+                    type: 'vod',
+                    poster: movie.stream_icon || ''
+                });
+            }
+
         } catch (error) {
-            console.log('Could not fetch detailed info:', error);
+            console.error('Failed to play movie:', error);
+            this.showError('Failed to play movie. Please try again.');
         }
+    }
 
-        const description = detailedInfo?.info?.plot || movie.description || 'No description available';
-        const duration = detailedInfo?.info?.duration || movie.duration || 'N/A';
-        const poster = movie.poster || movie.stream_icon || 'assets/placeholder.jpg';
+    async showMovieDetails(movieId) {
+        try {
+            const movie = this.allMovies.find(m => m.stream_id === movieId);
+            if (!movie) return;
+
+            // Get detailed info from backend
+            const movieInfo = await XtreamAPI.getVODInfo(movieId);
+            
+            this.currentMovie = { ...movie, ...movieInfo };
+            this.openModal();
+
+        } catch (error) {
+            console.error('Failed to load movie details:', error);
+            // Show basic info from cached data
+            this.currentMovie = this.allMovies.find(m => m.stream_id === movieId);
+            this.openModal();
+        }
+    }
+
+    openModal() {
+        if (!this.currentMovie) return;
+
+        const modal = document.getElementById('movie-modal');
+        if (!modal) return;
+
+        const info = this.currentMovie.info || this.currentMovie;
+        const isFavorite = window.favoritesManager && 
+                          favoritesManager.isFavorite(this.currentMovie.stream_id, 'movie');
+
+        document.getElementById('modal-poster').src = this.currentMovie.stream_icon || 
+            'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450"><rect fill="#e0e7ff" width="300" height="450"/><text x="50%" y="50%" font-size="60" text-anchor="middle" dy=".3em" fill="#6366f1">🎬</text></svg>';
         
-        const modal = document.getElementById('detailModal');
-        const modalBody = document.getElementById('modalBody');
+        document.getElementById('modal-title').textContent = this.currentMovie.name;
+        document.getElementById('modal-rating').textContent = info.rating || 'N/A';
+        document.getElementById('modal-year').textContent = info.releasedate || info.year || 'N/A';
+        document.getElementById('modal-duration').textContent = info.duration || 'N/A';
+        document.getElementById('modal-genre').textContent = info.genre || this.currentMovie.category_name || 'N/A';
+        document.getElementById('modal-plot').textContent = info.plot || info.description || 'No description available.';
         
-        modalBody.innerHTML = `
-            <div class="movie-detail">
-                <div class="movie-detail-poster">
-                    <img src="${poster}" alt="${movie.title}" onerror="this.src='assets/placeholder.jpg'">
-                </div>
-                <div class="movie-detail-content">
-                    <h2>${movie.title}</h2>
-                    <div class="movie-detail-meta">
-                        <span class="rating">⭐ ${movie.rating}</span>
-                        ${movie.year ? `<span>${movie.year}</span>` : ''}
-                        <span>${duration}</span>
-                        ${movie.genre ? `<span class="genre-badge">${movie.genre}</span>` : ''}
-                    </div>
-                    <p class="movie-description">${description}</p>
-                    <div class="movie-actions">
-                        <button class="action-btn primary" onclick="window.movieManager.playMovie(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
-                            ▶ Play Movie
-                        </button>
-                        <button class="action-btn ${isFavorite ? 'active' : ''}" onclick="window.movieManager.toggleFavorite(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
-                            ${isFavorite ? '❤️ Remove from Favorites' : '🤍 Add to Favorites'}
-                        </button>
-                    </div>
-                </div>
-            </div>
+        const favoriteBtn = document.getElementById('modal-favorite-btn');
+        favoriteBtn.className = `modal-action-btn ${isFavorite ? 'active' : ''}`;
+        favoriteBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
+                <path d="M8 2.5L9.5 6.5L14 7L11 10L12 14.5L8 12L4 14.5L5 10L2 7L6.5 6.5L8 2.5Z"/>
+            </svg>
+            ${isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
         `;
-        
-        modal.style.display = 'block';
+
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
     }
 
-    playMovie(movie) {
-        // Update recently watched
-        if (typeof window.addToRecentlyWatched === 'function') {
-            window.addToRecentlyWatched({
+    closeModal() {
+        const modal = document.getElementById('movie-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        this.currentMovie = null;
+    }
+
+    playCurrentMovie() {
+        if (this.currentMovie) {
+            this.playMovie(this.currentMovie.stream_id);
+            this.closeModal();
+        }
+    }
+
+    toggleFavoriteModal() {
+        if (this.currentMovie && window.favoritesManager) {
+            favoritesManager.toggleFavorite({
+                id: this.currentMovie.stream_id,
                 type: 'movie',
-                id: movie.id,
-                title: movie.title,
-                poster: movie.poster || movie.stream_icon,
-                year: movie.year,
-                genre: movie.genre,
-                rating: movie.rating
+                title: this.currentMovie.name,
+                thumbnail: this.currentMovie.stream_icon || '',
+                category: this.currentMovie.category_name || 'Movies'
             });
-        }
-
-        closeModal();
-        
-        // Get stream URL from API
-        const streamUrl = XtreamAPI.getVODStreamUrl(movie.id, movie.container_extension);
-        
-        if (streamUrl && window.playerManager) {
-            showSection('livetv');
-            setTimeout(() => {
-                const channelInfo = document.getElementById('channelInfo');
-                const channelName = document.getElementById('currentChannelName');
-                const playerOverlay = document.getElementById('playerOverlay');
-
-                if (channelInfo && channelName) {
-                    channelName.textContent = movie.title;
-                    channelInfo.style.display = 'block';
-                }
-
-                if (playerOverlay) {
-                    playerOverlay.style.display = 'none';
-                }
-
-                window.playerManager.playStream(streamUrl);
-                console.log('Playing movie:', movie.title);
-            }, 100);
-        } else {
-            alert('Stream not available for this movie.');
+            
+            // Update button
+            const favoriteBtn = document.getElementById('modal-favorite-btn');
+            const isFavorite = favoritesManager.isFavorite(this.currentMovie.stream_id, 'movie');
+            favoriteBtn.className = `modal-action-btn ${isFavorite ? 'active' : ''}`;
+            favoriteBtn.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
+                    <path d="M8 2.5L9.5 6.5L14 7L11 10L12 14.5L8 12L4 14.5L5 10L2 7L6.5 6.5L8 2.5Z"/>
+                </svg>
+                ${isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+            `;
+            
+            // Refresh movie grid if needed
+            this.renderMovies();
         }
     }
 
-    toggleFavorite(movie) {
-        const favorites = StorageManager.get('favorites') || [];
-        const index = favorites.findIndex(f => f.type === 'movie' && f.id === movie.id);
-        
-        if (index > -1) {
-            favorites.splice(index, 1);
-        } else {
-            favorites.push({
+    toggleFavorite(movieId) {
+        const movie = this.allMovies.find(m => m.stream_id === movieId);
+        if (movie && window.favoritesManager) {
+            favoritesManager.toggleFavorite({
+                id: movie.stream_id,
                 type: 'movie',
-                id: movie.id,
-                title: movie.title,
-                poster: movie.poster || movie.stream_icon,
-                year: movie.year,
-                genre: movie.genre,
-                rating: movie.rating
+                title: movie.name,
+                thumbnail: movie.stream_icon || '',
+                category: movie.category_name || 'Movies'
             });
-        }
-        
-        StorageManager.set('favorites', favorites);
-        this.showMovieDetails(movie);
-        
-        if (window.favoritesManager) {
-            window.favoritesManager.loadFavorites();
+            this.renderMovies();
         }
     }
 
-    isFavorite(movieId) {
-        const favorites = StorageManager.get('favorites') || [];
-        return favorites.some(f => f.type === 'movie' && f.id === movieId);
-    }
-
-    setupFilters() {
-        const searchInput = document.getElementById('movieSearch');
-        const genreFilter = document.getElementById('genreFilter');
-
-        if (searchInput) {
-            searchInput.addEventListener('input', () => this.applyFilters());
-        }
-
-        if (genreFilter) {
-            genreFilter.addEventListener('change', (e) => {
-                this.selectedCategory = e.target.value;
-                this.applyFilters();
-            });
-        }
-    }
-
-    applyFilters() {
-        const searchQuery = document.getElementById('movieSearch')?.value.toLowerCase() || '';
+    async filterByCategory(categoryId) {
+        this.currentCategory = categoryId;
         
-        this.filteredMovies = this.allMovies.filter(movie => {
-            const matchesSearch = !searchQuery ||
-                movie.title.toLowerCase().includes(searchQuery) ||
-                (movie.description && movie.description.toLowerCase().includes(searchQuery));
-            
-            const matchesCategory = !this.selectedCategory || 
-                movie.category_id == this.selectedCategory;
-            
-            return matchesSearch && matchesCategory;
+        if (categoryId === 'all') {
+            await this.loadMovies(null);
+        } else {
+            await this.loadMovies(categoryId);
+        }
+        
+        this.renderCategories();
+        this.renderMovies();
+    }
+
+    searchMovies(query) {
+        this.searchQuery = query;
+        this.renderMovies();
+    }
+
+    attachEventListeners() {
+        // Category filter
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('category-btn')) {
+                const categoryId = e.target.dataset.category;
+                this.filterByCategory(categoryId);
+            }
         });
 
-        this.renderMovies();
+        // Search in global search bar
+        const searchInput = document.getElementById('global-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                if (window.location.hash === '#movies') {
+                    this.searchMovies(e.target.value);
+                }
+            });
+        }
+
+        // Modal close button
+        const closeBtn = document.querySelector('.modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.closeModal());
+        }
+
+        // Modal backdrop click
+        const modal = document.getElementById('movie-modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.closeModal();
+                }
+            });
+        }
+
+        // Modal play button
+        const modalPlayBtn = document.getElementById('modal-play-btn');
+        if (modalPlayBtn) {
+            modalPlayBtn.addEventListener('click', () => this.playCurrentMovie());
+        }
+
+        // Modal favorite button
+        const modalFavoriteBtn = document.getElementById('modal-favorite-btn');
+        if (modalFavoriteBtn) {
+            modalFavoriteBtn.addEventListener('click', () => this.toggleFavoriteModal());
+        }
+    }
+
+    showError(message) {
+        const container = document.getElementById('movies-grid');
+        if (container) {
+            container.innerHTML = `
+                <div class="error-message">
+                    <p>${this.escapeHtml(message)}</p>
+                </div>
+            `;
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
-window.initMovieManager = function() {
-    if (!window.movieManager) {
-        window.movieManager = new MovieManager();
-        window.movieManager.loadMovies();
-    }
-};
+// Initialize on app load
+let moviesManager;
+if (window.location.pathname.includes('app.html')) {
+    document.addEventListener('DOMContentLoaded', () => {
+        moviesManager = new MoviesManager();
+    });
+}
