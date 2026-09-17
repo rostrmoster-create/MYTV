@@ -1,4 +1,4 @@
-// MYTV Authentication Handler - v15
+// MYTV Authentication Handler - v16 (JWT)
 
 class AuthManager {
     static async login(serverUrl, username, password, profileName) {
@@ -12,9 +12,10 @@ class AuthManager {
             loginBtn.disabled = true;
             errorMsg.style.display = 'none';
 
-            // Authenticate via backend
+            // Authenticate via backend - returns token
             const response = await XtreamAPI.authenticate(serverUrl, username, password, profileName);
 
+            // Token is already stored by XtreamAPI.authenticate()
             // Save profile info to localStorage (NOT credentials)
             const profileData = {
                 profileName: profileName,
@@ -24,6 +25,8 @@ class AuthManager {
             };
 
             localStorage.setItem('currentProfile', JSON.stringify(profileData));
+
+            console.log('Authentication successful, redirecting to app...');
 
             // Redirect to app
             window.location.href = 'app.html';
@@ -58,25 +61,46 @@ class AuthManager {
     }
 
     static async checkAuth() {
-        // Check if user has profile in localStorage
-        const profileData = localStorage.getItem('currentProfile');
+        // Check if user has JWT token
+        const token = XtreamAPI.getToken();
         
-        if (!profileData) {
+        if (!token) {
+            console.log('No auth token found, redirecting to login...');
             this.redirectToLogin();
             return false;
         }
 
-        // Verify backend session is still valid
-        const hasSession = await XtreamAPI.checkSession();
+        // Check if profile data exists
+        const profileData = localStorage.getItem('currentProfile');
         
-        if (!hasSession) {
-            console.log('Session expired, redirecting to login...');
+        if (!profileData) {
+            console.log('No profile data found, redirecting to login...');
+            this.redirectToLogin();
+            return false;
+        }
+
+        // Verify token is still valid by checking session status
+        try {
+            const sessionStatus = await XtreamAPI.checkSession();
+            
+            if (!sessionStatus || !sessionStatus.authenticated) {
+                console.log('Token expired or invalid, redirecting to login...');
+                XtreamAPI.clearToken();
+                localStorage.removeItem('currentProfile');
+                this.redirectToLogin();
+                return false;
+            }
+
+            console.log('Authentication verified, user is logged in');
+            return true;
+
+        } catch (error) {
+            console.error('Session check failed:', error);
+            XtreamAPI.clearToken();
             localStorage.removeItem('currentProfile');
             this.redirectToLogin();
             return false;
         }
-
-        return true;
     }
 
     static redirectToLogin() {
@@ -88,7 +112,7 @@ class AuthManager {
     }
 
     static async logout() {
-        // Clear backend session
+        // Clear JWT token
         await XtreamAPI.logout();
         
         // Clear local storage
