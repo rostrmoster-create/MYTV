@@ -1,327 +1,420 @@
-// Series Manager - v13 (Real Xtream Codes API)
+// MYTV Series - v15
+
 class SeriesManager {
     constructor() {
         this.allSeries = [];
         this.categories = [];
-        this.filteredSeries = [];
-        this.selectedCategory = null;
+        this.currentCategory = 'all';
+        this.searchQuery = '';
+        this.currentSeries = null;
+        this.currentSeriesInfo = null;
     }
 
-    async loadSeries() {
-        const container = document.getElementById('seriesContent');
-        if (container) {
-            container.innerHTML = '<div class="loading">Loading series from your server...</div>';
-        }
+    async init() {
+        await this.loadCategories();
+        await this.loadSeries();
+        this.renderCategories();
+        this.renderSeries();
+        this.attachEventListeners();
+    }
 
+    async loadCategories() {
         try {
-            // Check authentication
-            if (!XtreamAPI.isAuthenticated()) {
-                if (container) {
-                    container.innerHTML = '<div class="loading">Please login to view series</div>';
-                }
-                return;
-            }
-
-            // Load categories
-            this.categories = await XtreamAPI.getSeriesCategories();
-            
-            // Load all series
-            const series = await XtreamAPI.getSeries();
-            
-            if (!series || series.length === 0) {
-                if (container) {
-                    container.innerHTML = '<div class="loading">No series available in your account</div>';
-                }
-                return;
-            }
-
-            // Map series to format
-            this.allSeries = series.map(s => ({
-                id: s.series_id || s.num,
-                num: s.num,
-                name: s.name,
-                title: s.name,
-                cover: s.cover,
-                poster: s.cover,
-                category_id: s.category_id,
-                category_name: s.category_name,
-                rating: s.rating || 'N/A',
-                rating_5based: s.rating_5based,
-                year: this.extractYear(s.name),
-                genre: s.category_name,
-                plot: s.plot,
-                cast: s.cast,
-                director: s.director,
-                releaseDate: s.releaseDate,
-                last_modified: s.last_modified
-            }));
-
-            this.filteredSeries = [...this.allSeries];
-            this.renderCategoryFilter();
-            this.renderSeries();
-            this.setupFilters();
-
-            console.log(`Loaded ${this.allSeries.length} series from Xtream API`);
+            const categories = await XtreamAPI.getSeriesCategories();
+            this.categories = categories || [];
+            console.log('Loaded series categories:', this.categories.length);
         } catch (error) {
-            console.error('Error loading series:', error);
-            if (container) {
-                container.innerHTML = '<div class="loading">Error loading series. Please check your connection.</div>';
-            }
+            console.error('Failed to load series categories:', error);
+            this.categories = [];
         }
     }
 
-    extractYear(title) {
-        const match = title.match(/\((\d{4})\)/);
-        return match ? match[1] : '';
+    async loadSeries(categoryId = null) {
+        try {
+            const series = await XtreamAPI.getSeries(categoryId);
+            this.allSeries = series || [];
+            console.log('Loaded series:', this.allSeries.length);
+        } catch (error) {
+            console.error('Failed to load series:', error);
+            this.allSeries = [];
+            this.showError('Failed to load series. Please try again.');
+        }
     }
 
-    renderCategoryFilter() {
-        const genreFilter = document.getElementById('seriesGenreFilter');
-        if (!genreFilter || this.categories.length === 0) return;
+    renderCategories() {
+        const container = document.getElementById('series-categories');
+        if (!container) return;
 
-        genreFilter.innerHTML = '<option value="">All Categories</option>';
-        this.categories.forEach(cat => {
-            genreFilter.innerHTML += `<option value="${cat.category_id}">${cat.category_name}</option>`;
-        });
+        const categories = [
+            { category_id: 'all', category_name: 'All Series' },
+            ...this.categories
+        ];
+
+        container.innerHTML = categories.map(cat => `
+            <button class="category-btn ${cat.category_id === this.currentCategory ? 'active' : ''}" 
+                    data-category="${cat.category_id}">
+                ${this.escapeHtml(cat.category_name)}
+            </button>
+        `).join('');
     }
 
     renderSeries() {
-        const container = document.getElementById('seriesContent');
+        const container = document.getElementById('series-grid');
         if (!container) return;
 
-        if (this.filteredSeries.length === 0) {
-            container.innerHTML = '<div class="loading">No series found</div>';
+        let series = this.allSeries;
+
+        // Apply search filter
+        if (this.searchQuery) {
+            series = series.filter(s => 
+                s.name.toLowerCase().includes(this.searchQuery.toLowerCase())
+            );
+        }
+
+        if (series.length === 0) {
+            container.innerHTML = `
+                <div class="no-results">
+                    <p>No series found</p>
+                </div>
+            `;
             return;
         }
 
-        const html = this.filteredSeries.map(series => {
-            const poster = series.poster || series.cover || 'assets/placeholder.jpg';
-            
+        container.innerHTML = series.map(show => {
+            const isFavorite = window.favoritesManager && 
+                              favoritesManager.isFavorite(show.series_id, 'series');
+
             return `
-                <div class="movie-card" onclick="window.seriesManager.showSeriesDetails(${JSON.stringify(series).replace(/"/g, '&quot;')})">
-                    <div class="movie-poster">
-                        <img src="${poster}" alt="${series.title}" onerror="this.src='assets/placeholder.jpg'">
-                        <div class="movie-overlay">
-                            <button class="play-btn">▶ Watch</button>
+                <div class="series-card" data-series-id="${show.series_id}">
+                    <div class="series-poster">
+                        ${show.cover ? 
+                            `<img src="${this.escapeHtml(show.cover)}" 
+                                  alt="${this.escapeHtml(show.name)}"
+                                  onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 300 450%22><rect fill=%22%23e0e7ff%22 width=%22300%22 height=%22450%22/><text x=%2250%%22 y=%2250%%22 font-size=%2260%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%236366f1%22>📺</text></svg>'">` 
+                            : `<div class="series-placeholder">📺</div>`
+                        }
+                        <div class="series-overlay">
+                            <button class="play-btn-overlay" onclick="seriesManager.showSeriesDetails(${show.series_id})">
+                                <svg width="48" height="48" viewBox="0 0 48 48">
+                                    <circle cx="24" cy="24" r="24" fill="rgba(255,255,255,0.9)"/>
+                                    <path d="M20 14L34 24L20 34V14Z" fill="#6366f1"/>
+                                </svg>
+                            </button>
                         </div>
                     </div>
-                    <div class="movie-info">
-                        <h3>${series.title}</h3>
-                        <div class="movie-meta">
-                            <span>⭐ ${series.rating}</span>
-                            ${series.year ? `<span>${series.year}</span>` : ''}
+                    <div class="series-info">
+                        <h3 class="series-title">${this.escapeHtml(show.name)}</h3>
+                        <div class="series-meta">
+                            ${show.rating ? `<span class="rating">⭐ ${show.rating}</span>` : ''}
+                            ${show.category_name ? `<span class="genre">${this.escapeHtml(show.category_name)}</span>` : ''}
+                        </div>
+                        <div class="series-actions">
+                            <button class="action-btn" onclick="seriesManager.showSeriesDetails(${show.series_id})">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <rect x="2" y="4" width="12" height="10" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+                                    <path d="M5 2V4M11 2V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Episodes
+                            </button>
+                            <button class="action-btn favorite-btn ${isFavorite ? 'active' : ''}" 
+                                    onclick="seriesManager.toggleFavorite(${show.series_id})">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M8 2.5L9.5 6.5L14 7L11 10L12 14.5L8 12L4 14.5L5 10L2 7L6.5 6.5L8 2.5Z"/>
+                                </svg>
+                                ${isFavorite ? 'Favorited' : 'Favorite'}
+                            </button>
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
+    }
+
+    async showSeriesDetails(seriesId) {
+        try {
+            const show = this.allSeries.find(s => s.series_id === seriesId);
+            if (!show) return;
+
+            this.currentSeries = show;
+
+            // Get detailed info with seasons and episodes
+            const seriesInfo = await XtreamAPI.getSeriesInfo(seriesId);
+            this.currentSeriesInfo = seriesInfo;
+
+            this.openModal();
+
+        } catch (error) {
+            console.error('Failed to load series details:', error);
+            this.showError('Failed to load series details. Please try again.');
+        }
+    }
+
+    openModal() {
+        if (!this.currentSeries || !this.currentSeriesInfo) return;
+
+        const modal = document.getElementById('series-modal');
+        if (!modal) return;
+
+        const info = this.currentSeriesInfo.info || {};
+        const isFavorite = window.favoritesManager && 
+                          favoritesManager.isFavorite(this.currentSeries.series_id, 'series');
+
+        document.getElementById('series-modal-poster').src = this.currentSeries.cover || 
+            'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450"><rect fill="#e0e7ff" width="300" height="450"/><text x="50%" y="50%" font-size="60" text-anchor="middle" dy=".3em" fill="#6366f1">📺</text></svg>';
+        
+        document.getElementById('series-modal-title').textContent = this.currentSeries.name;
+        document.getElementById('series-modal-rating').textContent = info.rating || this.currentSeries.rating || 'N/A';
+        document.getElementById('series-modal-year').textContent = info.releaseDate || info.year || 'N/A';
+        document.getElementById('series-modal-genre').textContent = info.genre || this.currentSeries.category_name || 'N/A';
+        document.getElementById('series-modal-plot').textContent = info.plot || 'No description available.';
+
+        const favoriteBtn = document.getElementById('series-modal-favorite-btn');
+        favoriteBtn.className = `modal-action-btn ${isFavorite ? 'active' : ''}`;
+        favoriteBtn.innerHTML = `
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
+                <path d="M8 2.5L9.5 6.5L14 7L11 10L12 14.5L8 12L4 14.5L5 10L2 7L6.5 6.5L8 2.5Z"/>
+            </svg>
+            ${isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+        `;
+
+        // Render seasons and episodes
+        this.renderEpisodes();
+
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    renderEpisodes() {
+        const container = document.getElementById('series-episodes-list');
+        if (!container || !this.currentSeriesInfo) return;
+
+        const seasons = this.currentSeriesInfo.seasons || {};
+        const episodes = this.currentSeriesInfo.episodes || {};
+
+        if (Object.keys(seasons).length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #64748b;">No episodes available</p>';
+            return;
+        }
+
+        let html = '';
+
+        // Sort seasons numerically
+        const sortedSeasons = Object.keys(seasons).sort((a, b) => parseInt(a) - parseInt(b));
+
+        sortedSeasons.forEach(seasonNum => {
+            const seasonEpisodes = episodes[seasonNum] || [];
+            
+            if (seasonEpisodes.length === 0) return;
+
+            html += `
+                <div class="season-section">
+                    <h3 class="season-title">Season ${seasonNum}</h3>
+                    <div class="episodes-grid">
+            `;
+
+            seasonEpisodes.forEach(episode => {
+                html += `
+                    <div class="episode-card" onclick="seriesManager.playEpisode('${episode.id}', '${episode.container_extension || 'mp4'}', 'S${seasonNum}E${episode.episode_num}: ${this.escapeHtml(episode.title)}')">
+                        <div class="episode-thumbnail">
+                            ${episode.info && episode.info.movie_image ? 
+                                `<img src="${this.escapeHtml(episode.info.movie_image)}" alt="Episode ${episode.episode_num}">` 
+                                : `<div class="episode-placeholder">E${episode.episode_num}</div>`
+                            }
+                            <div class="episode-play-overlay">
+                                <svg width="32" height="32" viewBox="0 0 32 32">
+                                    <circle cx="16" cy="16" r="16" fill="rgba(255,255,255,0.9)"/>
+                                    <path d="M12 8L24 16L12 24V8Z" fill="#6366f1"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="episode-info">
+                            <div class="episode-number">Episode ${episode.episode_num}</div>
+                            <div class="episode-title">${this.escapeHtml(episode.title)}</div>
+                            ${episode.info && episode.info.duration ? `<div class="episode-duration">${episode.info.duration}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+        });
 
         container.innerHTML = html;
     }
 
-    async showSeriesDetails(series) {
-        // Add to recently watched
-        if (typeof window.addToRecentlyWatched === 'function') {
-            window.addToRecentlyWatched({
-                type: 'series',
-                id: series.id,
-                seriesId: series.id,
-                seriesName: series.title,
-                title: series.title,
-                poster: series.poster || series.cover,
-                year: series.year,
-                genre: series.genre,
-                rating: series.rating
-            });
-        }
-
-        const isFavorite = this.isFavorite(series.id);
-        
-        // Get detailed series info with episodes
-        let seriesInfo = null;
-        let episodesHtml = '';
-        
+    async playEpisode(episodeId, containerExtension, title) {
         try {
-            seriesInfo = await XtreamAPI.getSeriesInfo(series.id);
-            
-            if (seriesInfo && seriesInfo.episodes) {
-                episodesHtml = '<div class="series-episodes"><h3>Episodes</h3>';
-                
-                // Group episodes by season
-                const seasons = {};
-                Object.keys(seriesInfo.episodes).forEach(seasonNum => {
-                    seasons[seasonNum] = seriesInfo.episodes[seasonNum];
-                });
+            // Get stream URL from backend - FIXED: Added await
+            const streamUrl = await XtreamAPI.getSeriesStreamUrl(episodeId, containerExtension || 'mp4');
 
-                // Render episodes
-                Object.keys(seasons).sort((a, b) => parseInt(a) - parseInt(b)).forEach(seasonNum => {
-                    const episodes = seasons[seasonNum];
-                    episodes.forEach(ep => {
-                        episodesHtml += `
-                            <div class="episode-item" onclick="window.seriesManager.playEpisode(${JSON.stringify(series).replace(/"/g, '&quot;')}, ${JSON.stringify(ep).replace(/"/g, '&quot;')}, '${seasonNum}')">
-                                <div class="episode-number">S${seasonNum}E${ep.episode_num}</div>
-                                <div class="episode-info">
-                                    <h4>${ep.title || 'Episode ' + ep.episode_num}</h4>
-                                    <span>${ep.info?.duration || ''}</span>
-                                </div>
-                                <button class="episode-play-btn">▶</button>
-                            </div>
-                        `;
-                    });
-                });
-                
-                episodesHtml += '</div>';
+            if (!streamUrl) {
+                throw new Error('Failed to get stream URL');
             }
+
+            // Track in recently watched
+            if (window.recentlyWatchedManager) {
+                recentlyWatchedManager.addItem({
+                    id: episodeId,
+                    type: 'series',
+                    title: `${this.currentSeries.name} - ${title}`,
+                    thumbnail: this.currentSeries.cover || '',
+                    category: this.currentSeries.category_name || 'Series'
+                });
+            }
+
+            // Play in video player
+            if (window.videoPlayer) {
+                videoPlayer.play({
+                    url: streamUrl,
+                    title: `${this.currentSeries.name} - ${title}`,
+                    type: 'series',
+                    poster: this.currentSeries.cover || ''
+                });
+            }
+
+            this.closeModal();
+
         } catch (error) {
-            console.log('Could not fetch series details:', error);
+            console.error('Failed to play episode:', error);
+            alert('Failed to play episode. Please try again.');
         }
-
-        const description = seriesInfo?.info?.plot || series.plot || 'No description available';
-        const poster = series.poster || series.cover || 'assets/placeholder.jpg';
-        const numSeasons = seriesInfo?.episodes ? Object.keys(seriesInfo.episodes).length : '?';
-        
-        const modal = document.getElementById('detailModal');
-        const modalBody = document.getElementById('modalBody');
-        
-        modalBody.innerHTML = `
-            <div class="movie-detail">
-                <div class="movie-detail-poster">
-                    <img src="${poster}" alt="${series.title}" onerror="this.src='assets/placeholder.jpg'">
-                </div>
-                <div class="movie-detail-content">
-                    <h2>${series.title}</h2>
-                    <div class="movie-detail-meta">
-                        <span class="rating">⭐ ${series.rating}</span>
-                        ${series.year ? `<span>${series.year}</span>` : ''}
-                        <span>${numSeasons} Season${numSeasons !== 1 ? 's' : ''}</span>
-                        ${series.genre ? `<span class="genre-badge">${series.genre}</span>` : ''}
-                    </div>
-                    <p class="movie-description">${description}</p>
-                    <div class="movie-actions">
-                        <button class="action-btn ${isFavorite ? 'active' : ''}" onclick="window.seriesManager.toggleFavorite(${JSON.stringify(series).replace(/"/g, '&quot;')})">
-                            ${isFavorite ? '❤️ Remove from Favorites' : '🤍 Add to Favorites'}
-                        </button>
-                    </div>
-                    ${episodesHtml}
-                </div>
-            </div>
-        `;
-        
-        modal.style.display = 'block';
     }
 
-    playEpisode(series, episode, seasonNum) {
-        // Add episode to recently watched
-        if (typeof window.addToRecentlyWatched === 'function') {
-            window.addToRecentlyWatched({
+    closeModal() {
+        const modal = document.getElementById('series-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+        this.currentSeries = null;
+        this.currentSeriesInfo = null;
+    }
+
+    toggleFavoriteModal() {
+        if (this.currentSeries && window.favoritesManager) {
+            favoritesManager.toggleFavorite({
+                id: this.currentSeries.series_id,
                 type: 'series',
-                id: `${series.id}-s${seasonNum}e${episode.episode_num}`,
-                seriesId: series.id,
-                seriesName: series.title,
-                title: episode.title || `Episode ${episode.episode_num}`,
-                season: seasonNum,
-                episode: episode.episode_num,
-                poster: series.poster || series.cover
+                title: this.currentSeries.name,
+                thumbnail: this.currentSeries.cover || '',
+                category: this.currentSeries.category_name || 'Series'
             });
-        }
-
-        closeModal();
-        
-        // Get episode stream URL
-        const streamUrl = XtreamAPI.getSeriesStreamUrl(episode.id, episode.container_extension || 'mp4');
-        
-        if (streamUrl && window.playerManager) {
-            showSection('livetv');
-            setTimeout(() => {
-                const channelInfo = document.getElementById('channelInfo');
-                const channelName = document.getElementById('currentChannelName');
-                const playerOverlay = document.getElementById('playerOverlay');
-
-                if (channelInfo && channelName) {
-                    channelName.textContent = `${series.title} - S${seasonNum}E${episode.episode_num}: ${episode.title || 'Episode ' + episode.episode_num}`;
-                    channelInfo.style.display = 'block';
-                }
-
-                if (playerOverlay) {
-                    playerOverlay.style.display = 'none';
-                }
-
-                window.playerManager.playStream(streamUrl);
-                console.log('Playing episode:', episode.title);
-            }, 100);
-        } else {
-            alert('Stream not available.');
+            
+            // Update button
+            const favoriteBtn = document.getElementById('series-modal-favorite-btn');
+            const isFavorite = favoritesManager.isFavorite(this.currentSeries.series_id, 'series');
+            favoriteBtn.className = `modal-action-btn ${isFavorite ? 'active' : ''}`;
+            favoriteBtn.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="${isFavorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5">
+                    <path d="M8 2.5L9.5 6.5L14 7L11 10L12 14.5L8 12L4 14.5L5 10L2 7L6.5 6.5L8 2.5Z"/>
+                </svg>
+                ${isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+            `;
+            
+            // Refresh series grid
+            this.renderSeries();
         }
     }
 
-    toggleFavorite(series) {
-        const favorites = StorageManager.get('favorites') || [];
-        const index = favorites.findIndex(f => f.type === 'series' && f.id === series.id);
-        
-        if (index > -1) {
-            favorites.splice(index, 1);
-        } else {
-            favorites.push({
+    toggleFavorite(seriesId) {
+        const show = this.allSeries.find(s => s.series_id === seriesId);
+        if (show && window.favoritesManager) {
+            favoritesManager.toggleFavorite({
+                id: show.series_id,
                 type: 'series',
-                id: series.id,
-                title: series.title,
-                poster: series.poster || series.cover,
-                year: series.year,
-                genre: series.genre,
-                rating: series.rating
+                title: show.name,
+                thumbnail: show.cover || '',
+                category: show.category_name || 'Series'
             });
-        }
-        
-        StorageManager.set('favorites', favorites);
-        this.showSeriesDetails(series);
-        
-        if (window.favoritesManager) {
-            window.favoritesManager.loadFavorites();
+            this.renderSeries();
         }
     }
 
-    isFavorite(seriesId) {
-        const favorites = StorageManager.get('favorites') || [];
-        return favorites.some(f => f.type === 'series' && f.id === seriesId);
-    }
-
-    setupFilters() {
-        const searchInput = document.getElementById('seriesSearch');
-        const genreFilter = document.getElementById('seriesGenreFilter');
-
-        if (searchInput) {
-            searchInput.addEventListener('input', () => this.applyFilters());
-        }
-
-        if (genreFilter) {
-            genreFilter.addEventListener('change', (e) => {
-                this.selectedCategory = e.target.value;
-                this.applyFilters();
-            });
-        }
-    }
-
-    applyFilters() {
-        const searchQuery = document.getElementById('seriesSearch')?.value.toLowerCase() || '';
+    async filterByCategory(categoryId) {
+        this.currentCategory = categoryId;
         
-        this.filteredSeries = this.allSeries.filter(series => {
-            const matchesSearch = !searchQuery ||
-                series.title.toLowerCase().includes(searchQuery) ||
-                (series.plot && series.plot.toLowerCase().includes(searchQuery));
-            
-            const matchesCategory = !this.selectedCategory || 
-                series.category_id == this.selectedCategory;
-            
-            return matchesSearch && matchesCategory;
+        if (categoryId === 'all') {
+            await this.loadSeries(null);
+        } else {
+            await this.loadSeries(categoryId);
+        }
+        
+        this.renderCategories();
+        this.renderSeries();
+    }
+
+    searchSeries(query) {
+        this.searchQuery = query;
+        this.renderSeries();
+    }
+
+    attachEventListeners() {
+        // Category filter
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('category-btn')) {
+                const categoryId = e.target.dataset.category;
+                this.filterByCategory(categoryId);
+            }
         });
 
-        this.renderSeries();
+        // Search in global search bar
+        const searchInput = document.getElementById('global-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                if (window.location.hash === '#series') {
+                    this.searchSeries(e.target.value);
+                }
+            });
+        }
+
+        // Modal close button
+        const closeBtn = document.querySelector('.series-modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.closeModal());
+        }
+
+        // Modal backdrop click
+        const modal = document.getElementById('series-modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.closeModal();
+                }
+            });
+        }
+
+        // Modal favorite button
+        const modalFavoriteBtn = document.getElementById('series-modal-favorite-btn');
+        if (modalFavoriteBtn) {
+            modalFavoriteBtn.addEventListener('click', () => this.toggleFavoriteModal());
+        }
+    }
+
+    showError(message) {
+        const container = document.getElementById('series-grid');
+        if (container) {
+            container.innerHTML = `
+                <div class="error-message">
+                    <p>${this.escapeHtml(message)}</p>
+                </div>
+            `;
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
-window.initSeriesManager = function() {
-    if (!window.seriesManager) {
-        window.seriesManager = new SeriesManager();
-        window.seriesManager.loadSeries();
-    }
-};
+// Initialize on app load
+let seriesManager;
+if (window.location.pathname.includes('app.html')) {
+    document.addEventListener('DOMContentLoaded', () => {
+        seriesManager = new SeriesManager();
+    });
+}
