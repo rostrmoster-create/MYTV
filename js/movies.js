@@ -1,183 +1,86 @@
-// Movies Manager - v12
+// Movies Manager - v13 (Real Xtream Codes API)
 class MovieManager {
     constructor() {
         this.allMovies = [];
+        this.categories = [];
         this.filteredMovies = [];
-        this.genres = new Set();
+        this.selectedCategory = null;
     }
 
     async loadMovies() {
+        const container = document.getElementById('moviesContent');
+        if (container) {
+            container.innerHTML = '<div class="loading">Loading movies from your server...</div>';
+        }
+
         try {
-            const apiMovies = await APIClient.getVODStreams();
-            
-            if (apiMovies && apiMovies.length > 0) {
-                this.allMovies = apiMovies;
-            } else {
-                this.allMovies = this.getDemoMovies();
+            // Check authentication
+            if (!XtreamAPI.isAuthenticated()) {
+                if (container) {
+                    container.innerHTML = '<div class="loading">Please login to view movies</div>';
+                }
+                return;
             }
+
+            // Load categories
+            this.categories = await XtreamAPI.getVODCategories();
+            
+            // Load all VOD streams
+            const streams = await XtreamAPI.getVODStreams();
+            
+            if (!streams || streams.length === 0) {
+                if (container) {
+                    container.innerHTML = '<div class="loading">No movies available in your account</div>';
+                }
+                return;
+            }
+
+            // Map streams to movie format
+            this.allMovies = streams.map(stream => ({
+                id: stream.stream_id || stream.num,
+                num: stream.num,
+                name: stream.name,
+                title: stream.name,
+                stream_icon: stream.stream_icon,
+                poster: stream.stream_icon,
+                category_id: stream.category_id,
+                category_name: stream.category_name,
+                container_extension: stream.container_extension || 'mp4',
+                rating: stream.rating || 'N/A',
+                rating_5based: stream.rating_5based,
+                added: stream.added,
+                year: this.extractYear(stream.name),
+                genre: stream.category_name,
+                description: stream.plot || stream.description || 'No description available'
+            }));
+
+            this.filteredMovies = [...this.allMovies];
+            this.renderCategoryFilter();
+            this.renderMovies();
+            this.setupFilters();
+
+            console.log(`Loaded ${this.allMovies.length} movies from Xtream API`);
         } catch (error) {
             console.error('Error loading movies:', error);
-            this.allMovies = this.getDemoMovies();
+            if (container) {
+                container.innerHTML = '<div class="loading">Error loading movies. Please check your connection.</div>';
+            }
         }
-
-        this.extractGenres();
-        this.filteredMovies = [...this.allMovies];
-        this.renderMovies();
-        this.setupFilters();
     }
 
-    getDemoMovies() {
-        return [
-            {
-                id: 'm1',
-                title: 'The Shawshank Redemption',
-                poster: 'https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg',
-                year: '1994',
-                genre: 'Drama',
-                rating: '9.3',
-                duration: '142 min',
-                description: 'Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm2',
-                title: 'The Godfather',
-                poster: 'https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg',
-                year: '1972',
-                genre: 'Crime',
-                rating: '9.2',
-                duration: '175 min',
-                description: 'The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm3',
-                title: 'The Dark Knight',
-                poster: 'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
-                year: '2008',
-                genre: 'Action',
-                rating: '9.0',
-                duration: '152 min',
-                description: 'When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest tests.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm4',
-                title: 'Pulp Fiction',
-                poster: 'https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
-                year: '1994',
-                genre: 'Crime',
-                rating: '8.9',
-                duration: '154 min',
-                description: 'The lives of two mob hitmen, a boxer, a gangster and his wife intertwine in four tales of violence and redemption.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm5',
-                title: 'Forrest Gump',
-                poster: 'https://image.tmdb.org/t/p/w500/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg',
-                year: '1994',
-                genre: 'Drama',
-                rating: '8.8',
-                duration: '142 min',
-                description: 'The presidencies of Kennedy and Johnson unfold through the perspective of an Alabama man with an IQ of 75.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm6',
-                title: 'Inception',
-                poster: 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',
-                year: '2010',
-                genre: 'Sci-Fi',
-                rating: '8.8',
-                duration: '148 min',
-                description: 'A thief who steals corporate secrets through dream-sharing technology is given the inverse task of planting an idea.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm7',
-                title: 'The Matrix',
-                poster: 'https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg',
-                year: '1999',
-                genre: 'Sci-Fi',
-                rating: '8.7',
-                duration: '136 min',
-                description: 'A computer hacker learns from mysterious rebels about the true nature of his reality and his role in the war against its controllers.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm8',
-                title: 'Interstellar',
-                poster: 'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
-                year: '2014',
-                genre: 'Sci-Fi',
-                rating: '8.6',
-                duration: '169 min',
-                description: 'A team of explorers travel through a wormhole in space in an attempt to ensure humanity\'s survival.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm9',
-                title: 'The Lion King',
-                poster: 'https://image.tmdb.org/t/p/w500/sKCr78MXSLixwmZ8DyJLrpMsd15.jpg',
-                year: '1994',
-                genre: 'Animation',
-                rating: '8.5',
-                duration: '88 min',
-                description: 'Lion prince Simba flees his kingdom only to learn the true meaning of responsibility and bravery.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm10',
-                title: 'Gladiator',
-                poster: 'https://image.tmdb.org/t/p/w500/ty8TGRuvJLPUmAR1H1nRIsgwvim.jpg',
-                year: '2000',
-                genre: 'Action',
-                rating: '8.5',
-                duration: '155 min',
-                description: 'A former Roman General sets out to exact vengeance against the corrupt emperor who murdered his family.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm11',
-                title: 'Titanic',
-                poster: 'https://image.tmdb.org/t/p/w500/9xjZS2rlVxm8SFx8kPC3aIGCOYQ.jpg',
-                year: '1997',
-                genre: 'Romance',
-                rating: '7.9',
-                duration: '194 min',
-                description: 'A seventeen-year-old aristocrat falls in love with a kind but poor artist aboard the luxurious, ill-fated R.M.S. Titanic.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            },
-            {
-                id: 'm12',
-                title: 'Avengers: Endgame',
-                poster: 'https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg',
-                year: '2019',
-                genre: 'Action',
-                rating: '8.4',
-                duration: '181 min',
-                description: 'After the devastating events, the Avengers assemble once more to reverse Thanos\' actions and restore balance.',
-                stream_url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8'
-            }
-        ];
+    extractYear(title) {
+        const match = title.match(/\((\d{4})\)/);
+        return match ? match[1] : '';
     }
 
-    extractGenres() {
-        this.genres.clear();
-        this.allMovies.forEach(movie => {
-            if (movie.genre) {
-                this.genres.add(movie.genre);
-            }
-        });
-
+    renderCategoryFilter() {
         const genreFilter = document.getElementById('genreFilter');
-        if (genreFilter) {
-            genreFilter.innerHTML = '<option value="all">All Genres</option>';
-            Array.from(this.genres).sort().forEach(genre => {
-                genreFilter.innerHTML += `<option value="${genre}">${genre}</option>`;
-            });
-        }
+        if (!genreFilter || this.categories.length === 0) return;
+
+        genreFilter.innerHTML = '<option value="">All Categories</option>';
+        this.categories.forEach(cat => {
+            genreFilter.innerHTML += `<option value="${cat.category_id}">${cat.category_name}</option>`;
+        });
     }
 
     renderMovies() {
@@ -189,35 +92,39 @@ class MovieManager {
             return;
         }
 
-        const html = this.filteredMovies.map(movie => `
-            <div class="movie-card" onclick="window.movieManager.showMovieDetails(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
-                <div class="movie-poster">
-                    <img src="${movie.poster}" alt="${movie.title}" onerror="this.src='assets/placeholder.jpg'">
-                    <div class="movie-overlay">
-                        <button class="play-btn">▶ Play</button>
+        const html = this.filteredMovies.map(movie => {
+            const poster = movie.poster || movie.stream_icon || 'assets/placeholder.jpg';
+            
+            return `
+                <div class="movie-card" onclick="window.movieManager.showMovieDetails(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
+                    <div class="movie-poster">
+                        <img src="${poster}" alt="${movie.title}" onerror="this.src='assets/placeholder.jpg'">
+                        <div class="movie-overlay">
+                            <button class="play-btn">▶ Play</button>
+                        </div>
+                    </div>
+                    <div class="movie-info">
+                        <h3>${movie.title}</h3>
+                        <div class="movie-meta">
+                            <span>⭐ ${movie.rating}</span>
+                            ${movie.year ? `<span>${movie.year}</span>` : ''}
+                        </div>
                     </div>
                 </div>
-                <div class="movie-info">
-                    <h3>${movie.title}</h3>
-                    <div class="movie-meta">
-                        <span>⭐ ${movie.rating || 'N/A'}</span>
-                        <span>${movie.year || 'N/A'}</span>
-                    </div>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         container.innerHTML = html;
     }
 
-    showMovieDetails(movie) {
-        // Add to recently watched when viewing details
+    async showMovieDetails(movie) {
+        // Add to recently watched
         if (typeof window.addToRecentlyWatched === 'function') {
             window.addToRecentlyWatched({
                 type: 'movie',
                 id: movie.id,
                 title: movie.title,
-                poster: movie.poster,
+                poster: movie.poster || movie.stream_icon,
                 year: movie.year,
                 genre: movie.genre,
                 rating: movie.rating
@@ -226,23 +133,35 @@ class MovieManager {
 
         const isFavorite = this.isFavorite(movie.id);
         
+        // Try to get detailed info
+        let detailedInfo = null;
+        try {
+            detailedInfo = await XtreamAPI.getVODInfo(movie.id);
+        } catch (error) {
+            console.log('Could not fetch detailed info:', error);
+        }
+
+        const description = detailedInfo?.info?.plot || movie.description || 'No description available';
+        const duration = detailedInfo?.info?.duration || movie.duration || 'N/A';
+        const poster = movie.poster || movie.stream_icon || 'assets/placeholder.jpg';
+        
         const modal = document.getElementById('detailModal');
         const modalBody = document.getElementById('modalBody');
         
         modalBody.innerHTML = `
             <div class="movie-detail">
                 <div class="movie-detail-poster">
-                    <img src="${movie.poster}" alt="${movie.title}" onerror="this.src='assets/placeholder.jpg'">
+                    <img src="${poster}" alt="${movie.title}" onerror="this.src='assets/placeholder.jpg'">
                 </div>
                 <div class="movie-detail-content">
                     <h2>${movie.title}</h2>
                     <div class="movie-detail-meta">
-                        <span class="rating">⭐ ${movie.rating || 'N/A'}</span>
-                        <span>${movie.year || 'N/A'}</span>
-                        <span>${movie.duration || 'N/A'}</span>
-                        <span class="genre-badge">${movie.genre || 'General'}</span>
+                        <span class="rating">⭐ ${movie.rating}</span>
+                        ${movie.year ? `<span>${movie.year}</span>` : ''}
+                        <span>${duration}</span>
+                        ${movie.genre ? `<span class="genre-badge">${movie.genre}</span>` : ''}
                     </div>
-                    <p class="movie-description">${movie.description || 'No description available.'}</p>
+                    <p class="movie-description">${description}</p>
                     <div class="movie-actions">
                         <button class="action-btn primary" onclick="window.movieManager.playMovie(${JSON.stringify(movie).replace(/"/g, '&quot;')})">
                             ▶ Play Movie
@@ -259,13 +178,13 @@ class MovieManager {
     }
 
     playMovie(movie) {
-        // Update recently watched (playing, not just viewing)
+        // Update recently watched
         if (typeof window.addToRecentlyWatched === 'function') {
             window.addToRecentlyWatched({
                 type: 'movie',
                 id: movie.id,
                 title: movie.title,
-                poster: movie.poster,
+                poster: movie.poster || movie.stream_icon,
                 year: movie.year,
                 genre: movie.genre,
                 rating: movie.rating
@@ -274,7 +193,10 @@ class MovieManager {
 
         closeModal();
         
-        if (movie.stream_url && window.playerManager) {
+        // Get stream URL from API
+        const streamUrl = XtreamAPI.getVODStreamUrl(movie.id, movie.container_extension);
+        
+        if (streamUrl && window.playerManager) {
             showSection('livetv');
             setTimeout(() => {
                 const channelInfo = document.getElementById('channelInfo');
@@ -290,7 +212,8 @@ class MovieManager {
                     playerOverlay.style.display = 'none';
                 }
 
-                window.playerManager.playStream(movie.stream_url);
+                window.playerManager.playStream(streamUrl);
+                console.log('Playing movie:', movie.title);
             }, 100);
         } else {
             alert('Stream not available for this movie.');
@@ -308,7 +231,7 @@ class MovieManager {
                 type: 'movie',
                 id: movie.id,
                 title: movie.title,
-                poster: movie.poster,
+                poster: movie.poster || movie.stream_icon,
                 year: movie.year,
                 genre: movie.genre,
                 rating: movie.rating
@@ -337,20 +260,25 @@ class MovieManager {
         }
 
         if (genreFilter) {
-            genreFilter.addEventListener('change', () => this.applyFilters());
+            genreFilter.addEventListener('change', (e) => {
+                this.selectedCategory = e.target.value;
+                this.applyFilters();
+            });
         }
     }
 
     applyFilters() {
         const searchQuery = document.getElementById('movieSearch')?.value.toLowerCase() || '';
-        const selectedGenre = document.getElementById('genreFilter')?.value || 'all';
-
+        
         this.filteredMovies = this.allMovies.filter(movie => {
-            const matchesSearch = movie.title.toLowerCase().includes(searchQuery) ||
-                                (movie.description && movie.description.toLowerCase().includes(searchQuery));
-            const matchesGenre = selectedGenre === 'all' || movie.genre === selectedGenre;
+            const matchesSearch = !searchQuery ||
+                movie.title.toLowerCase().includes(searchQuery) ||
+                (movie.description && movie.description.toLowerCase().includes(searchQuery));
             
-            return matchesSearch && matchesGenre;
+            const matchesCategory = !this.selectedCategory || 
+                movie.category_id == this.selectedCategory;
+            
+            return matchesSearch && matchesCategory;
         });
 
         this.renderMovies();
